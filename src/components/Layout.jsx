@@ -1,5 +1,7 @@
-import { A } from "@solidjs/router";
-import { Show, createMemo } from "solid-js";
+import { A, useLocation, useMatch } from "@solidjs/router";
+import { Show, Switch, Match, createMemo } from "solid-js";
+import { TrendingSidebar } from "./TrendingSidebar";
+import { TopNotesSidebar } from "./TopNotesSidebar";
 import {
   getPubkey,
   getUserProfile,
@@ -19,6 +21,19 @@ export function Layout(props) {
   const state = createMemo(() => getLoginState());
   const pk = createMemo(() => getPubkey());
   const color = createMemo(() => pk() ? avatarColor(pk()) : "var(--w-text-muted)");
+
+  const location = useLocation();
+  const matchProfile = useMatch(() => "/profile/:pubkey");
+
+  const isFeedRoute = createMemo(() => {
+    const path = location.pathname;
+    return path === "/" || path.startsWith("/relay/");
+  });
+
+  const profilePubkey = createMemo(() => {
+    const m = matchProfile();
+    return m ? m.params.pubkey : null;
+  });
 
   const displayName = createMemo(() => {
     const p = profile();
@@ -82,6 +97,14 @@ export function Layout(props) {
           }
           .wisp-main {
             padding-bottom: 60px !important;
+          }
+          .wisp-right-sidebar {
+            display: none !important;
+          }
+        }
+        @media (max-width: 1000px) {
+          .wisp-right-sidebar {
+            display: none !important;
           }
         }
       `}</style>
@@ -157,6 +180,16 @@ export function Layout(props) {
         <main style={styles.main} class="wisp-main">
           {props.children}
         </main>
+        <aside style={styles.rightSidebar} class="wisp-right-sidebar">
+          <Switch>
+            <Match when={isFeedRoute()}>
+              <TrendingSidebar />
+            </Match>
+            <Match when={profilePubkey()}>
+              <TopNotesSidebar pubkey={profilePubkey()} />
+            </Match>
+          </Switch>
+        </aside>
         <Composer />
       </div>
     </>
@@ -167,6 +200,8 @@ const styles = {
   container: {
     display: "flex",
     "min-height": "100vh",
+    "max-width": "1200px",
+    margin: "0 auto",
   },
   nav: {
     width: "200px",
@@ -303,5 +338,16 @@ const styles = {
   main: {
     flex: 1,
     "min-width": 0,
+  },
+  rightSidebar: {
+    width: "320px",
+    "flex-shrink": 0,
+    position: "sticky",
+    top: 0,
+    height: "100vh",
+    "overflow-y": "auto",
+    "scrollbar-width": "none",
+    "border-left": "1px solid var(--w-border)",
+    padding: "16px 0",
   },
 };

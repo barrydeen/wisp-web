@@ -191,17 +191,30 @@ export function NoteCard(props) {
     onCleanup(() => observer.disconnect());
   });
 
+  const avatarStyle = createMemo(() => {
+    if (props.compact) return styles.avatarImgCompact;
+    if (props.embedded) return styles.avatarImgEmbedded;
+    return styles.avatarImg;
+  });
+
+  const avatarFallbackStyle = createMemo(() => {
+    if (props.compact) return styles.avatarFallbackCompact;
+    if (props.embedded) return styles.avatarFallbackEmbedded;
+    return styles.avatarFallback;
+  });
+
   return (
     <article ref={cardRef} style={{
       ...styles.card,
       ...(props.embedded ? styles.cardEmbedded : {}),
+      ...(props.compact ? styles.cardCompact : {}),
       cursor: "pointer",
     }} onClick={handleCardClick}>
       <A href={`/profile/${props.note.pubkey}`} style={styles.avatarCol} onClick={(e) => e.stopPropagation()}>
         {avatar() ? (
-          <img src={avatar()} style={props.embedded ? styles.avatarImgEmbedded : styles.avatarImg} loading="lazy" alt={displayName() + "'s avatar"} />
+          <img src={avatar()} style={avatarStyle()} loading="lazy" alt={displayName() + "'s avatar"} />
         ) : (
-          <div style={{ ...(props.embedded ? styles.avatarFallbackEmbedded : styles.avatarFallback), "background-color": color() }}>
+          <div style={{ ...avatarFallbackStyle(), "background-color": color() }}>
             {props.note.pubkey.slice(0, 2).toUpperCase()}
           </div>
         )}
@@ -213,90 +226,94 @@ export function NoteCard(props) {
             <A href={`/profile/${props.note.pubkey}`} style={styles.author} onClick={(e) => e.stopPropagation()}>
               {displayName()}
             </A>
-            <Show when={clientName()}>
+            <Show when={!props.compact && clientName()}>
               <span style={styles.clientTag}>via {clientName()}</span>
             </Show>
-            <Show when={nip05Display()}>
+            <Show when={!props.compact && nip05Display()}>
               <span style={styles.nip05}>{nip05Display()}</span>
             </Show>
             <span style={styles.dot}>&middot;</span>
             <span style={styles.time}>{time()}</span>
           </div>
-          <div style={styles.menuWrapper} onClick={(e) => e.stopPropagation()}>
-            <button onClick={toggleMenu} style={styles.menuBtn} aria-label="Note options" aria-haspopup="true" aria-expanded={menuOpen()}>
-              <EllipsisIcon />
-            </button>
-            <Show when={menuOpen()}>
-              <div ref={menuRef} style={styles.dropdown} role="menu">
-                <button
-                  role="menuitem"
-                  style={{
-                    ...styles.dropdownItem,
-                    background: hoveredItem() === "share" ? "var(--w-bg-hover)" : "none",
-                  }}
-                  onMouseEnter={() => setHoveredItem("share")}
-                  onMouseLeave={() => setHoveredItem(null)}
-                  onClick={handleShare}
-                >
-                  Share
-                </button>
-                <button
-                  role="menuitem"
-                  style={{
-                    ...styles.dropdownItem,
-                    background: hoveredItem() === "json" ? "var(--w-bg-hover)" : "none",
-                  }}
-                  onMouseEnter={() => setHoveredItem("json")}
-                  onMouseLeave={() => setHoveredItem(null)}
-                  onClick={handleCopyJson}
-                >
-                  Copy note JSON
-                </button>
-                <button
-                  role="menuitem"
-                  style={{
-                    ...styles.dropdownItem,
-                    background: hoveredItem() === "id" ? "var(--w-bg-hover)" : "none",
-                  }}
-                  onMouseEnter={() => setHoveredItem("id")}
-                  onMouseLeave={() => setHoveredItem(null)}
-                  onClick={handleCopyId}
-                >
-                  Copy note ID
-                </button>
-              </div>
-            </Show>
-          </div>
+          <Show when={!props.compact}>
+            <div style={styles.menuWrapper} onClick={(e) => e.stopPropagation()}>
+              <button onClick={toggleMenu} style={styles.menuBtn} aria-label="Note options" aria-haspopup="true" aria-expanded={menuOpen()}>
+                <EllipsisIcon />
+              </button>
+              <Show when={menuOpen()}>
+                <div ref={menuRef} style={styles.dropdown} role="menu">
+                  <button
+                    role="menuitem"
+                    style={{
+                      ...styles.dropdownItem,
+                      background: hoveredItem() === "share" ? "var(--w-bg-hover)" : "none",
+                    }}
+                    onMouseEnter={() => setHoveredItem("share")}
+                    onMouseLeave={() => setHoveredItem(null)}
+                    onClick={handleShare}
+                  >
+                    Share
+                  </button>
+                  <button
+                    role="menuitem"
+                    style={{
+                      ...styles.dropdownItem,
+                      background: hoveredItem() === "json" ? "var(--w-bg-hover)" : "none",
+                    }}
+                    onMouseEnter={() => setHoveredItem("json")}
+                    onMouseLeave={() => setHoveredItem(null)}
+                    onClick={handleCopyJson}
+                  >
+                    Copy note JSON
+                  </button>
+                  <button
+                    role="menuitem"
+                    style={{
+                      ...styles.dropdownItem,
+                      background: hoveredItem() === "id" ? "var(--w-bg-hover)" : "none",
+                    }}
+                    onMouseEnter={() => setHoveredItem("id")}
+                    onMouseLeave={() => setHoveredItem(null)}
+                    onClick={handleCopyId}
+                  >
+                    Copy note ID
+                  </button>
+                </div>
+              </Show>
+            </div>
+          </Show>
         </div>
 
         {/* Content */}
-        <div style={styles.content}>
+        <div style={props.compact ? styles.contentCompact : styles.content}>
           <RichContent content={props.note.content} tags={props.note.tags} embedded={props.embedded} />
         </div>
 
         {/* Action bar */}
-        <div style={styles.actionBar}>
-          <ActionButton icon={ReplyIcon} count={replyCount()} hoverColor="var(--w-action-reply)" />
-          <ActionButton icon={RepostIcon} count={repostCount()} hoverColor="var(--w-action-repost)" active={hasUserReposted(props.note.id)} />
-          <ActionButton icon={LikeIcon} count={reactionCount()} hoverColor="var(--w-action-like)" active={hasUserReacted(props.note.id)} />
-          <ActionButton
-            icon={ZapIcon}
-            count={zapDisplay()}
-            hoverColor="var(--w-action-zap)"
-            onClick={handleZapClick}
-          />
-        </div>
+        <Show when={!props.compact}>
+          <div style={styles.actionBar}>
+            <ActionButton icon={ReplyIcon} count={replyCount()} hoverColor="var(--w-action-reply)" />
+            <ActionButton icon={RepostIcon} count={repostCount()} hoverColor="var(--w-action-repost)" active={hasUserReposted(props.note.id)} />
+            <ActionButton icon={LikeIcon} count={reactionCount()} hoverColor="var(--w-action-like)" active={hasUserReacted(props.note.id)} />
+            <ActionButton
+              icon={ZapIcon}
+              count={zapDisplay()}
+              hoverColor="var(--w-action-zap)"
+              onClick={handleZapClick}
+            />
+          </div>
 
-        <ZapDialog
-          isOpen={showZap()}
-          onClose={() => setShowZap(false)}
-          recipientPubkey={props.note.pubkey}
-          recipientName={displayName()}
-          recipientLud16={recipientLud16()}
-          eventId={props.note.id}
-          eventKind={props.note.kind || 1}
-          eventTags={props.note.tags}
-        />
+          <ZapDialog
+            isOpen={showZap()}
+            onClose={() => setShowZap(false)}
+            recipientPubkey={props.note.pubkey}
+            recipientName={displayName()}
+            recipientLud16={recipientLud16()}
+            eventId={props.note.id}
+            eventKind={props.note.kind || 1}
+            eventTags={props.note.tags}
+          />
+        </Show>
       </div>
     </article>
   );
@@ -313,6 +330,37 @@ const styles = {
   cardEmbedded: {
     padding: "12px 14px",
     "border-bottom": "none",
+  },
+  cardCompact: {
+    padding: "10px 12px",
+    gap: "10px",
+  },
+  avatarImgCompact: {
+    width: "28px",
+    height: "28px",
+    "border-radius": "50%",
+    "object-fit": "cover",
+  },
+  avatarFallbackCompact: {
+    width: "28px",
+    height: "28px",
+    "border-radius": "50%",
+    display: "flex",
+    "align-items": "center",
+    "justify-content": "center",
+    "font-size": "10px",
+    "font-weight": 700,
+    color: "var(--w-text-primary)",
+  },
+  contentCompact: {
+    "font-size": "13px",
+    "line-height": 1.4,
+    "word-break": "break-word",
+    color: "var(--w-text-secondary)",
+    display: "-webkit-box",
+    "-webkit-line-clamp": "3",
+    "-webkit-box-orient": "vertical",
+    overflow: "hidden",
   },
   avatarCol: {
     "flex-shrink": 0,
