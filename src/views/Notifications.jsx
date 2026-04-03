@@ -135,6 +135,7 @@ function FilterBar(props) {
                 color: active() ? "var(--w-text-secondary)" : "var(--w-text-muted)",
                 "border-color": active() ? "var(--w-accent-subtle)" : "var(--w-border)",
               }}
+              aria-label={`Filter ${TYPE_LABELS[type]}`}
               onClick={() => props.onToggle(type)}
             >
               {TYPE_LABELS[type]}

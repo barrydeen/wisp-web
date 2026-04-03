@@ -105,6 +105,7 @@ function StreamCard(props) {
       <Show when={props.stream.image}>
         <img
           src={props.stream.image}
+          alt=""
           style={listStyles.cardImage}
           loading="lazy"
         />
@@ -112,7 +113,7 @@ function StreamCard(props) {
       <div style={listStyles.cardBody}>
         <div style={listStyles.cardMeta}>
           {avatar() ? (
-            <img src={avatar()} style={listStyles.cardAvatar} loading="lazy" />
+            <img src={avatar()} alt="" style={listStyles.cardAvatar} loading="lazy" />
           ) : (
             <div
               style={{
@@ -311,6 +312,7 @@ function StreamView(props) {
                 <input
                   type="text"
                   placeholder="Chat..."
+                  aria-label="Stream chat message"
                   value={messageText()}
                   onInput={(e) => setMessageText(e.target.value)}
                   onKeyDown={handleKeyDown}
@@ -375,7 +377,7 @@ function VideoPlayer(props) {
       when={props.streamingUrl}
       fallback={
         <Show when={props.image}>
-          <img src={props.image} style={viewStyles.thumbnail} loading="lazy" />
+          <img src={props.image} alt="" style={viewStyles.thumbnail} loading="lazy" />
         </Show>
       }
     >
@@ -409,7 +411,7 @@ function StreamInfoBar(props) {
           <span style={viewStyles.liveBadge}>LIVE</span>
         </Show>
         {avatar() ? (
-          <img src={avatar()} style={viewStyles.infoAvatar} loading="lazy" />
+          <img src={avatar()} alt="" style={viewStyles.infoAvatar} loading="lazy" />
         ) : (
           <div
             style={{
@@ -514,7 +516,7 @@ function ChatMessage(props) {
             style={{
               ...viewStyles.msgActionBtn,
               color: props.hasReacted
-                ? "#f91880"
+                ? "var(--w-action-like)"
                 : "var(--w-text-muted)",
             }}
             onClick={props.onLike}
@@ -669,7 +671,7 @@ const listStyles = {
     "justify-content": "center",
     "font-size": "12px",
     "font-weight": 700,
-    color: "#fff",
+    color: "var(--w-text-primary)",
     "flex-shrink": 0,
   },
   cardName: {
@@ -685,8 +687,8 @@ const listStyles = {
     "font-size": "11px",
     "font-weight": 700,
     "letter-spacing": "0.5px",
-    background: "#e53e3e",
-    color: "#fff",
+    background: "var(--w-live)",
+    color: "var(--w-btn-text)",
   },
   cardTitle: {
     "font-size": "15px",
@@ -755,7 +757,7 @@ const viewStyles = {
     "justify-content": "center",
     "font-size": "11px",
     "font-weight": 700,
-    color: "#fff",
+    color: "var(--w-text-primary)",
     "flex-shrink": 0,
   },
   infoName: {
@@ -778,7 +780,7 @@ const viewStyles = {
     gap: "4px",
     "font-size": "13px",
     "font-weight": 600,
-    color: "#f7931a",
+    color: "var(--w-action-zap)",
   },
   zapStreamBtn: {
     display: "flex",
@@ -800,8 +802,8 @@ const viewStyles = {
     "font-size": "11px",
     "font-weight": 700,
     "letter-spacing": "0.5px",
-    background: "#e53e3e",
-    color: "#fff",
+    background: "var(--w-live)",
+    color: "var(--w-btn-text)",
     "flex-shrink": 0,
   },
   chatArea: {

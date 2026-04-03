@@ -202,6 +202,7 @@ function RelayAddForm(props) {
       <input
         type="text"
         placeholder="wss://relay.example.com"
+        aria-label="Relay URL"
         value={value()}
         onInput={(e) => setValue(e.target.value)}
         onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAdd(); } }}
@@ -245,7 +246,7 @@ function PublishButton(props) {
         ...styles.publishBtn,
         opacity: status() === "publishing" ? 0.6 : 1,
         background: status() === "done" ? "var(--w-success)"
-          : status() === "error" ? "#aa4444"
+          : status() === "error" ? "var(--w-error)"
           : "var(--w-accent)",
       }}
     >
@@ -340,6 +341,7 @@ function SearchRelaySection() {
       <input
         type="text"
         placeholder="wss://relay.nostr.band"
+        aria-label="Search relay URL"
         value={value()}
         onInput={(e) => setValue(e.target.value)}
         onBlur={handleSave}
@@ -446,6 +448,7 @@ function PowSettingsSection() {
             type="range"
             min={8}
             max={32}
+            aria-label="Proof of work difficulty"
             value={difficulty()}
             onInput={(e) => setPowDifficulty(Number(e.target.value))}
             style={{ flex: 1 }}
@@ -668,7 +671,7 @@ const styles = {
     "border-radius": "8px",
     border: "none",
     "background-color": "var(--w-accent)",
-    color: "#fff",
+    color: "var(--w-btn-text)",
     "font-size": "13px",
     "font-weight": 600,
     cursor: "pointer",

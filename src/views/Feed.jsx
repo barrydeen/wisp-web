@@ -158,7 +158,7 @@ function FeedTypeSelector(props) {
 
   return (
     <div ref={el => ref = el} style={{ position: "relative" }}>
-      <button onClick={() => setOpen(!open())} style={selectorStyles.button}>
+      <button onClick={() => setOpen(!open())} style={selectorStyles.button} aria-haspopup="listbox" aria-expanded={open()}>
         {currentLabel()}
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="6 9 12 15 18 9" />
@@ -221,6 +221,7 @@ function RelayPicker(props) {
         <input
           type="text"
           placeholder="wss://relay.example.com"
+          aria-label="Relay URL"
           value={inputValue()}
           onInput={(e) => setInputValue(e.target.value)}
           style={relayPickerStyles.input}
@@ -512,7 +513,7 @@ function StreamPill(props) {
       onMouseLeave={() => setHovered(false)}
     >
       {avatar() ? (
-        <img src={avatar()} style={pillStyles.pillAvatar} loading="lazy" />
+        <img src={avatar()} style={pillStyles.pillAvatar} loading="lazy" alt="" />
       ) : (
         <div style={{ ...pillStyles.pillAvatarFallback, "background-color": color() }}>
           {props.stream.streamerPubkey.slice(0, 2).toUpperCase()}
@@ -541,8 +542,8 @@ const pillStyles = {
     "font-size": "11px",
     "font-weight": 700,
     "letter-spacing": "0.5px",
-    background: "#e53e3e",
-    color: "#fff",
+    background: "var(--w-live)",
+    color: "var(--w-btn-text)",
     "flex-shrink": 0,
   },
   pill: {
@@ -571,7 +572,7 @@ const pillStyles = {
     "justify-content": "center",
     "font-size": "10px",
     "font-weight": 700,
-    color: "#fff",
+    color: "var(--w-text-primary)",
   },
   pillName: {
     "font-size": "13px",
@@ -608,7 +609,7 @@ const selectorStyles = {
     "border-radius": "10px",
     padding: "4px",
     "z-index": 20,
-    "box-shadow": "0 4px 12px rgba(0,0,0,0.15)",
+    "box-shadow": "0 4px 12px var(--w-shadow)",
   },
   menuItem: {
     display: "block",
@@ -703,6 +704,8 @@ const relayPickerStyles = {
 const styles = {
   container: {
     "max-width": "650px",
+    width: "100%",
+    padding: "0 16px",
   },
   header: {
     padding: "20px 20px 16px",

@@ -101,6 +101,8 @@ function ChatMessage(props) {
 const styles = {
   container: {
     "max-width": "650px",
+    width: "100%",
+    padding: "0 16px",
   },
   header: {
     padding: "20px 20px 16px",

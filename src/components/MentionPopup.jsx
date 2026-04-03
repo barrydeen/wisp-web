@@ -31,7 +31,7 @@ function MentionRow(props) {
       onClick={() => props.onSelect(props.candidate)}
     >
       {props.candidate.picture ? (
-        <img src={props.candidate.picture} style={styles.avatar} loading="lazy" />
+        <img src={props.candidate.picture} style={styles.avatar} loading="lazy" alt="" />
       ) : (
         <div style={{ ...styles.avatarFallback, "background-color": color() }}>
           {props.candidate.pubkey.slice(0, 2).toUpperCase()}
@@ -62,7 +62,7 @@ const styles = {
     "border-radius": "8px",
     padding: "4px 0",
     "z-index": 20,
-    "box-shadow": "0 4px 12px rgba(0,0,0,0.5)",
+    "box-shadow": "0 4px 12px var(--w-shadow)",
     "max-height": "240px",
     overflow: "auto",
   },
@@ -72,6 +72,7 @@ const styles = {
     gap: "10px",
     width: "100%",
     padding: "8px 12px",
+    "min-height": "44px",
     border: "none",
     cursor: "pointer",
     "text-align": "left",

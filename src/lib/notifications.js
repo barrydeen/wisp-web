@@ -31,14 +31,13 @@ let dmSeenIds = null;
 const [notifVersion, setNotifVersion] = createSignal(0);
 const [hasUnread, setHasUnread] = createSignal(false);
 
-let versionDirty = false;
+let dirtyFrame = null;
 function markDirty() {
-  if (!versionDirty) {
-    versionDirty = true;
-    setTimeout(() => {
-      versionDirty = false;
+  if (!dirtyFrame) {
+    dirtyFrame = requestAnimationFrame(() => {
+      dirtyFrame = null;
       setNotifVersion((v) => v + 1);
-    }, 50);
+    });
   }
 }
 

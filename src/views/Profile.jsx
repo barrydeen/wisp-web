@@ -138,7 +138,7 @@ function FollowRow(props) {
           </div>
         }
       >
-        <img src={profile().picture} style={styles.followAvatar} loading="lazy" />
+        <img src={profile().picture} style={styles.followAvatar} loading="lazy" alt="" />
       </Show>
       <div style={styles.followInfo}>
         <span style={styles.followName}>{name()}</span>
@@ -210,7 +210,7 @@ export default function Profile() {
             </div>
           }
         >
-          <img src={profile().picture} style={styles.avatar} />
+          <img src={profile().picture} style={styles.avatar} alt={displayName() + "'s profile picture"} />
         </Show>
         <div>
           <h2 style={styles.name}>{displayName()}</h2>
@@ -253,6 +253,8 @@ export default function Profile() {
 const styles = {
   container: {
     "max-width": "650px",
+    width: "100%",
+    padding: "0 16px",
   },
   profileHeader: {
     padding: "24px 20px",

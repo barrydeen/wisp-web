@@ -111,6 +111,7 @@ function ImageSegment(props) {
     <div style={styles.mediaBlock}>
       <img
         src={props.url}
+        alt="Embedded image"
         style={styles.image}
         loading="lazy"
         onClick={(e) => {
@@ -193,7 +194,7 @@ function LightningInvoiceSegment(props) {
         <code style={styles.invoiceCode}>
           {props.invoice.substring(0, 30)}...
         </code>
-        <button style={styles.invoiceCopyBtn} onClick={handleCopy}>
+        <button style={styles.invoiceCopyBtn} aria-label="Copy lightning invoice" onClick={handleCopy}>
           {copied() ? "Copied!" : "Copy"}
         </button>
       </div>
@@ -409,7 +410,7 @@ const styles = {
   },
   invoiceCopyBtn: {
     background: "var(--w-accent)",
-    color: "#fff",
+    color: "var(--w-btn-text)",
     border: "none",
     "border-radius": "6px",
     padding: "4px 12px",
