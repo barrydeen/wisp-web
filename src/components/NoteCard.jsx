@@ -173,9 +173,10 @@ export function NoteCard(props) {
     return sats > 0 ? formatSats(sats) : "";
   });
 
-  // Viewport visibility detection
+  // Viewport visibility detection (skip for embedded notes)
   let cardRef;
   createEffect(() => {
+    if (props.embedded) return;
     if (!cardRef || !props.onVisible) return;
     const observer = new IntersectionObserver(
       (entries) => {
@@ -191,12 +192,16 @@ export function NoteCard(props) {
   });
 
   return (
-    <article ref={cardRef} style={{ ...styles.card, cursor: "pointer" }} onClick={handleCardClick}>
+    <article ref={cardRef} style={{
+      ...styles.card,
+      ...(props.embedded ? styles.cardEmbedded : {}),
+      cursor: "pointer",
+    }} onClick={handleCardClick}>
       <A href={`/profile/${props.note.pubkey}`} style={styles.avatarCol} onClick={(e) => e.stopPropagation()}>
         {avatar() ? (
-          <img src={avatar()} style={styles.avatarImg} loading="lazy" />
+          <img src={avatar()} style={props.embedded ? styles.avatarImgEmbedded : styles.avatarImg} loading="lazy" />
         ) : (
-          <div style={{ ...styles.avatarFallback, "background-color": color() }}>
+          <div style={{ ...(props.embedded ? styles.avatarFallbackEmbedded : styles.avatarFallback), "background-color": color() }}>
             {props.note.pubkey.slice(0, 2).toUpperCase()}
           </div>
         )}
@@ -263,7 +268,7 @@ export function NoteCard(props) {
 
         {/* Content */}
         <div style={styles.content}>
-          <RichContent content={props.note.content} tags={props.note.tags} />
+          <RichContent content={props.note.content} tags={props.note.tags} embedded={props.embedded} />
         </div>
 
         {/* Action bar */}
@@ -302,6 +307,10 @@ const styles = {
     "border-bottom": "1px solid var(--w-border-secondary)",
     transition: "background 0.1s",
   },
+  cardEmbedded: {
+    padding: "12px 14px",
+    "border-bottom": "none",
+  },
   avatarCol: {
     "flex-shrink": 0,
   },
@@ -319,6 +328,23 @@ const styles = {
     "align-items": "center",
     "justify-content": "center",
     "font-size": "13px",
+    "font-weight": 700,
+    color: "var(--w-text-primary)",
+  },
+  avatarImgEmbedded: {
+    width: "32px",
+    height: "32px",
+    "border-radius": "50%",
+    "object-fit": "cover",
+  },
+  avatarFallbackEmbedded: {
+    width: "32px",
+    height: "32px",
+    "border-radius": "50%",
+    display: "flex",
+    "align-items": "center",
+    "justify-content": "center",
+    "font-size": "11px",
     "font-weight": 700,
     color: "var(--w-text-primary)",
   },

@@ -10,6 +10,7 @@ import { getProfile } from "../lib/profiles";
 import { avatarColor, npubShort } from "../lib/utils";
 import { getRelaySets, getRelayList } from "../lib/relays";
 import { subscribeEngagement, clearEngagement } from "../lib/engagement";
+import { extractReferencedNoteIds, requestNote } from "../lib/notes";
 
 function ProgressStep(props) {
   const icon = createMemo(() => {
@@ -373,6 +374,12 @@ export default function Feed() {
         engageBatchTimeout = null;
         subscribeEngagement(batch);
       }, 300);
+    }
+
+    // Prefetch referenced/quoted notes
+    const refs = extractReferencedNoteIds(note);
+    for (const ref of refs) {
+      requestNote(ref.id, ref.relays);
     }
   }
 
