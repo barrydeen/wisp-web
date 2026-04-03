@@ -1,5 +1,6 @@
 import { createMemo, For, Show, createSignal } from "solid-js";
 import { A } from "@solidjs/router";
+import { nip19 } from "nostr-tools";
 import { parseContent, parseImetaTags, buildEmojiMap } from "../lib/content";
 import { getProfile } from "../lib/profiles";
 import { npubShort } from "../lib/utils";
@@ -277,6 +278,19 @@ export function RichContent(props) {
           case "link":
             return <LinkSegment url={group.url} />;
           case "nostr-note":
+            if (props.embedded) {
+              // Prevent recursive embedding — render as a link
+              try {
+                const ne = nip19.neventEncode({ id: group.id, relays: group.relays || [] });
+                return (
+                  <a href={`/thread/${ne}`} style={styles.link} onClick={(e) => e.stopPropagation()}>
+                    {ne.substring(0, 30)}...
+                  </a>
+                );
+              } catch {
+                return null;
+              }
+            }
             return <EmbeddedNote id={group.id} relays={group.relays} />;
           case "nostr-addr":
             return (
