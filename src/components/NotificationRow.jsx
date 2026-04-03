@@ -57,11 +57,11 @@ const EnvelopeIcon = () => (
 // --- Type config ---
 
 const TYPE_CONFIG = {
-  reaction: { icon: HeartIcon, color: "#f91880" },
-  zap: { icon: ZapIcon, color: "#f7931a" },
-  repost: { icon: RepostIcon, color: "#00ba7c" },
-  reply: { icon: ReplyIcon, color: "#1d9bf0" },
-  quote: { icon: QuoteIcon, color: "#1d9bf0" },
+  reaction: { icon: HeartIcon, color: "var(--w-action-like)" },
+  zap: { icon: ZapIcon, color: "var(--w-action-zap)" },
+  repost: { icon: RepostIcon, color: "var(--w-action-repost)" },
+  reply: { icon: ReplyIcon, color: "var(--w-action-reply)" },
+  quote: { icon: QuoteIcon, color: "var(--w-action-reply)" },
   mention: { icon: MentionIcon, color: "var(--w-text-muted)" },
   dm: { icon: EnvelopeIcon, color: "var(--w-text-muted)" },
 };
@@ -136,11 +136,14 @@ export function NotificationRow(props) {
 
   return (
     <div
+      role="button"
+      tabIndex={0}
       style={{
         ...styles.row,
         background: hovered() ? "var(--w-bg-hover)" : "transparent",
       }}
       onClick={handleClick}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleClick(); } }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
@@ -154,7 +157,7 @@ export function NotificationRow(props) {
 
       {/* Avatar */}
       {avatar() ? (
-        <img src={avatar()} style={styles.avatarImg} loading="lazy" />
+        <img src={avatar()} style={styles.avatarImg} loading="lazy" alt="" />
       ) : (
         <div style={{ ...styles.avatarFallback, "background-color": color() }}>
           {props.item.actorPubkey.slice(0, 2).toUpperCase()}

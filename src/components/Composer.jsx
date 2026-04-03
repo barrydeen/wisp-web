@@ -119,8 +119,11 @@ export function Composer() {
   // Auto-grow textarea
   function autoGrow() {
     if (textareaRef) {
-      textareaRef.style.height = "auto";
-      textareaRef.style.height = textareaRef.scrollHeight + "px";
+      requestAnimationFrame(() => {
+        textareaRef.style.height = "auto";
+        const h = textareaRef.scrollHeight;
+        textareaRef.style.height = h + "px";
+      });
     }
   }
 
@@ -200,12 +203,13 @@ export function Composer() {
 
   return (
     <Show when={composerOpen()}>
+      <style>{`textarea:focus-visible, input:focus-visible { outline: 2px solid var(--w-accent) !important; outline-offset: -1px; }`}</style>
       <div style={styles.overlay} onClick={handleOverlayClick}>
-        <div style={styles.modal}>
+        <div style={styles.modal} role="dialog" aria-modal="true" aria-labelledby="composer-title">
           {/* Header */}
           <div style={styles.header}>
-            <h3 style={styles.title}>New Note</h3>
-            <button onClick={closeComposer} style={styles.closeBtn}>
+            <h3 id="composer-title" style={styles.title}>New Note</h3>
+            <button onClick={closeComposer} style={styles.closeBtn} aria-label="Close composer">
               <CloseIcon />
             </button>
           </div>
@@ -219,6 +223,7 @@ export function Composer() {
               onClick={handleCursorChange}
               onKeyUp={handleCursorChange}
               placeholder="What's on your mind?"
+              aria-label="Compose your note"
               style={styles.textarea}
               rows={3}
             />
@@ -300,6 +305,7 @@ export function Composer() {
                         value={opt}
                         onInput={(e) => updatePollOption(i(), e.target.value)}
                         placeholder={`Option ${i() + 1}`}
+                        aria-label={"Poll option " + (i() + 1)}
                         style={styles.pollOptionInput}
                       />
                       <Show when={pollOptions().length > 2}>
@@ -369,7 +375,7 @@ export function Composer() {
                 icon={WarningIcon}
                 onClick={toggleExplicit}
                 active={explicit()}
-                activeColor="#cc4444"
+                activeColor="var(--w-error)"
                 title="Mark as NSFW"
               />
               <ToggleBtn
@@ -378,7 +384,7 @@ export function Composer() {
                 active={false}
                 title="Proof of Work (configure in Settings)"
               />
-              <button onClick={triggerFileUpload} style={styles.toggleBtn} title="Attach media">
+              <button onClick={triggerFileUpload} style={styles.toggleBtn} title="Attach media" aria-label="Attach media">
                 <PaperclipIcon />
               </button>
             </div>
@@ -436,7 +442,7 @@ const styles = {
     left: 0,
     right: 0,
     bottom: 0,
-    background: "rgba(0,0,0,0.6)",
+    background: "var(--w-overlay)",
     "backdrop-filter": "blur(4px)",
     display: "flex",
     "align-items": "flex-start",
@@ -453,7 +459,7 @@ const styles = {
     "max-height": "80vh",
     display: "flex",
     "flex-direction": "column",
-    "box-shadow": "0 8px 32px rgba(0,0,0,0.4)",
+    "box-shadow": "0 8px 32px var(--w-shadow)",
     overflow: "hidden",
   },
   header: {
@@ -528,9 +534,9 @@ const styles = {
     position: "absolute",
     top: "4px",
     right: "4px",
-    background: "rgba(0,0,0,0.6)",
+    background: "var(--w-overlay-btn)",
     border: "none",
-    color: "#fff",
+    color: "var(--w-text-primary)",
     cursor: "pointer",
     "border-radius": "50%",
     width: "24px",
@@ -646,9 +652,9 @@ const styles = {
     "margin-top": "10px",
     padding: "8px 12px",
     "border-radius": "8px",
-    background: "rgba(200,60,60,0.1)",
-    border: "1px solid rgba(200,60,60,0.2)",
-    color: "#cc4444",
+    background: "var(--w-error-subtle)",
+    border: "1px solid var(--w-error-border)",
+    color: "var(--w-error)",
     "font-size": "12px",
   },
   miningBanner: {
@@ -663,9 +669,9 @@ const styles = {
     "margin-top": "10px",
     padding: "8px 12px",
     "border-radius": "8px",
-    background: "rgba(200,60,60,0.1)",
-    border: "1px solid rgba(200,60,60,0.2)",
-    color: "#cc4444",
+    background: "var(--w-error-subtle)",
+    border: "1px solid var(--w-error-border)",
+    color: "var(--w-error)",
     "font-size": "13px",
   },
   // Footer

@@ -256,6 +256,22 @@ function applySettings() {
   root.style.setProperty("--w-bg-overlay", hexToRgba(bg, 0.9));
   root.style.setProperty("--w-bg-overlay-heavy", hexToRgba(bg, 0.95));
 
+  // Semantic tokens (mode-dependent, theme-independent)
+  const isDark = m === "dark";
+  root.style.setProperty("--w-error", isDark ? "#ef4444" : "#dc2626");
+  root.style.setProperty("--w-error-subtle", isDark ? "rgba(239,68,68,0.1)" : "rgba(220,38,38,0.08)");
+  root.style.setProperty("--w-error-border", isDark ? "rgba(239,68,68,0.2)" : "rgba(220,38,38,0.2)");
+  root.style.setProperty("--w-overlay", isDark ? "rgba(0,0,0,0.6)" : "rgba(0,0,0,0.4)");
+  root.style.setProperty("--w-overlay-btn", isDark ? "rgba(0,0,0,0.6)" : "rgba(0,0,0,0.5)");
+  root.style.setProperty("--w-shadow", isDark ? "0 4px 12px rgba(0,0,0,0.5)" : "0 4px 12px rgba(0,0,0,0.15)");
+
+  // Social action colors (platform conventions, theme-independent)
+  root.style.setProperty("--w-action-reply", "#1d9bf0");
+  root.style.setProperty("--w-action-repost", "#00ba7c");
+  root.style.setProperty("--w-action-like", "#f91880");
+  root.style.setProperty("--w-action-zap", "#f7931a");
+  root.style.setProperty("--w-live", "#e53e3e");
+
   // Font
   const fontStack = fonts[font()] || fonts.inter;
   root.style.setProperty("--w-font-family", fontStack);

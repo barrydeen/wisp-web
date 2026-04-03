@@ -199,7 +199,7 @@ export function NoteCard(props) {
     }} onClick={handleCardClick}>
       <A href={`/profile/${props.note.pubkey}`} style={styles.avatarCol} onClick={(e) => e.stopPropagation()}>
         {avatar() ? (
-          <img src={avatar()} style={props.embedded ? styles.avatarImgEmbedded : styles.avatarImg} loading="lazy" />
+          <img src={avatar()} style={props.embedded ? styles.avatarImgEmbedded : styles.avatarImg} loading="lazy" alt={displayName() + "'s avatar"} />
         ) : (
           <div style={{ ...(props.embedded ? styles.avatarFallbackEmbedded : styles.avatarFallback), "background-color": color() }}>
             {props.note.pubkey.slice(0, 2).toUpperCase()}
@@ -223,12 +223,13 @@ export function NoteCard(props) {
             <span style={styles.time}>{time()}</span>
           </div>
           <div style={styles.menuWrapper} onClick={(e) => e.stopPropagation()}>
-            <button onClick={toggleMenu} style={styles.menuBtn}>
+            <button onClick={toggleMenu} style={styles.menuBtn} aria-label="Note options" aria-haspopup="true" aria-expanded={menuOpen()}>
               <EllipsisIcon />
             </button>
             <Show when={menuOpen()}>
-              <div ref={menuRef} style={styles.dropdown}>
+              <div ref={menuRef} style={styles.dropdown} role="menu">
                 <button
+                  role="menuitem"
                   style={{
                     ...styles.dropdownItem,
                     background: hoveredItem() === "share" ? "var(--w-bg-hover)" : "none",
@@ -240,6 +241,7 @@ export function NoteCard(props) {
                   Share
                 </button>
                 <button
+                  role="menuitem"
                   style={{
                     ...styles.dropdownItem,
                     background: hoveredItem() === "json" ? "var(--w-bg-hover)" : "none",
@@ -251,6 +253,7 @@ export function NoteCard(props) {
                   Copy note JSON
                 </button>
                 <button
+                  role="menuitem"
                   style={{
                     ...styles.dropdownItem,
                     background: hoveredItem() === "id" ? "var(--w-bg-hover)" : "none",
@@ -273,13 +276,13 @@ export function NoteCard(props) {
 
         {/* Action bar */}
         <div style={styles.actionBar}>
-          <ActionButton icon={ReplyIcon} count={replyCount()} hoverColor="#1d9bf0" />
-          <ActionButton icon={RepostIcon} count={repostCount()} hoverColor="#00ba7c" active={hasUserReposted(props.note.id)} />
-          <ActionButton icon={LikeIcon} count={reactionCount()} hoverColor="#f91880" active={hasUserReacted(props.note.id)} />
+          <ActionButton icon={ReplyIcon} count={replyCount()} hoverColor="var(--w-action-reply)" />
+          <ActionButton icon={RepostIcon} count={repostCount()} hoverColor="var(--w-action-repost)" active={hasUserReposted(props.note.id)} />
+          <ActionButton icon={LikeIcon} count={reactionCount()} hoverColor="var(--w-action-like)" active={hasUserReacted(props.note.id)} />
           <ActionButton
             icon={ZapIcon}
             count={zapDisplay()}
-            hoverColor="#f7931a"
+            hoverColor="var(--w-action-zap)"
             onClick={handleZapClick}
           />
         </div>
@@ -430,7 +433,7 @@ const styles = {
     border: "none",
     cursor: "pointer",
     color: "var(--w-text-muted)",
-    padding: "4px",
+    padding: "8px",
     "border-radius": "50%",
     display: "flex",
     "align-items": "center",
@@ -447,7 +450,7 @@ const styles = {
     "border-radius": "8px",
     padding: "4px 0",
     "z-index": 10,
-    "box-shadow": "0 4px 12px rgba(0,0,0,0.5)",
+    "box-shadow": "0 4px 12px var(--w-shadow)",
   },
   dropdownItem: {
     display: "block",

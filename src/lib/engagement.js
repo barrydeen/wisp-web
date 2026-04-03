@@ -38,14 +38,13 @@ const activeSubClosers = [];
 // Version signal for reactivity
 const [engagementVersion, setEngagementVersion] = createSignal(0);
 
-let versionDirty = false;
+let dirtyFrame = null;
 function markDirty() {
-  if (!versionDirty) {
-    versionDirty = true;
-    setTimeout(() => {
-      versionDirty = false;
+  if (!dirtyFrame) {
+    dirtyFrame = requestAnimationFrame(() => {
+      dirtyFrame = null;
       setEngagementVersion((v) => v + 1);
-    }, 50);
+    });
   }
 }
 
