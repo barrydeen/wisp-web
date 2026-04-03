@@ -46,6 +46,7 @@ export async function login() {
     import("./outbox").then(({ initFollowFeed }) => initFollowFeed(pk));
     import("./relays").then(({ fetchOwnRelayLists }) => fetchOwnRelayLists(pk));
     import("./wallet").then(({ initWallet }) => initWallet(pk));
+    import("./notifications").then(({ initNotifications }) => initNotifications(pk));
 
     return pk;
   } catch (err) {
@@ -64,6 +65,7 @@ export function logout() {
   import("./outbox").then(({ clearFollowFeed }) => clearFollowFeed());
   import("./relays").then(({ clearRelayState }) => clearRelayState());
   import("./wallet").then(({ clearWallet }) => clearWallet());
+  import("./notifications").then(({ clearNotifications }) => clearNotifications());
 }
 
 // Restore session on page load
@@ -72,6 +74,7 @@ if (stored) {
   import("./outbox").then(({ initFollowFeed }) => initFollowFeed(stored));
   import("./relays").then(({ fetchOwnRelayLists }) => fetchOwnRelayLists(stored));
   import("./wallet").then(({ initWallet }) => initWallet(stored));
+  import("./notifications").then(({ initNotifications }) => initNotifications(stored));
 }
 
 function fetchUserProfile(pk) {

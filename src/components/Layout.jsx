@@ -11,6 +11,7 @@ import {
 import { avatarColor, npubShort } from "../lib/utils";
 import { Composer } from "./Composer";
 import { openComposer } from "../lib/compose";
+import { getHasUnread } from "../lib/notifications";
 import logoUrl from "../assets/wisp-logo.svg";
 
 export function Layout(props) {
@@ -47,6 +48,12 @@ export function Layout(props) {
           <A href="/chat" style={styles.link} activeClass="active">chat</A>
           <A href="/streams" style={styles.link} activeClass="active">streams</A>
           <A href="/groups" style={styles.link} activeClass="active">groups</A>
+          <div style={styles.notifLinkWrap}>
+            <A href="/notifications" style={styles.link} activeClass="active">notifications</A>
+            <Show when={getHasUnread()}>
+              <div style={styles.unreadDot} />
+            </Show>
+          </div>
           <A href="/messages" style={styles.link} activeClass="active">messages</A>
           <A href="/wallet" style={styles.link} activeClass="active">wallet</A>
           <A href="/settings" style={styles.link} activeClass="active">settings</A>
@@ -146,6 +153,18 @@ const styles = {
     "font-size": "15px",
     color: "var(--w-text-tertiary)",
     transition: "background 0.15s, color 0.15s",
+  },
+  notifLinkWrap: {
+    position: "relative",
+  },
+  unreadDot: {
+    position: "absolute",
+    top: "8px",
+    right: "8px",
+    width: "7px",
+    height: "7px",
+    "border-radius": "50%",
+    background: "#e53e3e",
   },
   newNoteBtn: {
     display: "flex",
