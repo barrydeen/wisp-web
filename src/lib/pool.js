@@ -55,6 +55,25 @@ export function createSubscription(filters, opts = {}) {
   return { events, cleanup };
 }
 
+// Subscribe preserving relay delivery order (for pre-ranked feeds)
+export function createOrderedSubscription(filters, opts = {}) {
+  const [events, setEvents] = createSignal([]);
+  const relays = opts.relays || DEFAULT_RELAYS;
+  const maxEvents = opts.limit || 500;
+
+  const sub = pool.subscribeMany(relays, filters, {
+    onevent(event) {
+      setEvents((prev) => {
+        if (prev.some((e) => e.id === event.id)) return prev;
+        return [...prev, event].slice(0, maxEvents);
+      });
+    },
+    oneose() {},
+  });
+
+  return { events, cleanup: () => sub.close() };
+}
+
 // Sign an event via NIP-07 and publish to relays
 export async function publishEvent(eventTemplate, relays) {
   if (!window.nostr) throw new Error("No Nostr extension found");
