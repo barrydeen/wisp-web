@@ -78,6 +78,7 @@ function GroupList() {
           <input
             type="text"
             placeholder="relay.com'group_id"
+            aria-label="Invite code"
             value={inviteCode()}
             onInput={(e) => setInviteCode(e.target.value)}
             style={styles.input}
@@ -123,6 +124,7 @@ function GroupList() {
           <input
             type="text"
             placeholder="wss://relay.example.com"
+            aria-label="Relay URL"
             value={relayInput()}
             onInput={(e) => setRelayInput(e.target.value)}
             style={styles.input}
@@ -187,7 +189,7 @@ function RelayGroupBrowser(props) {
             <a href={`/groups/${g.code}`} style={styles.groupCard}>
               <div style={styles.groupCardTop}>
                 <Show when={g.picture}>
-                  <img src={g.picture} style={styles.groupPic} loading="lazy" />
+                  <img src={g.picture} alt={g.name} style={styles.groupPic} loading="lazy" />
                 </Show>
                 <div>
                   <span style={styles.groupName}>{g.name}</span>
@@ -245,6 +247,7 @@ function CreateGroupForm() {
       <input
         type="text"
         placeholder="wss://relay.example.com"
+        aria-label="Relay URL"
         value={relay()}
         onInput={(e) => setRelay(e.target.value)}
         style={styles.input}
@@ -252,6 +255,7 @@ function CreateGroupForm() {
       <input
         type="text"
         placeholder="Group name"
+        aria-label="Group name"
         value={name()}
         onInput={(e) => setName(e.target.value)}
         style={styles.input}
@@ -259,6 +263,7 @@ function CreateGroupForm() {
       <input
         type="text"
         placeholder="Description (optional)"
+        aria-label="Group description"
         value={about()}
         onInput={(e) => setAbout(e.target.value)}
         style={styles.input}
@@ -376,7 +381,7 @@ function GroupRoom(props) {
         <div style={styles.groupHeaderTop}>
           <div style={styles.groupHeaderInfo}>
             <Show when={groupPicture()}>
-              <img src={groupPicture()} style={styles.groupHeaderPic} loading="lazy" />
+              <img src={groupPicture()} alt="" style={styles.groupHeaderPic} loading="lazy" />
             </Show>
             <div>
               <h2 style={styles.title}>{groupName()}</h2>
@@ -417,6 +422,7 @@ function GroupRoom(props) {
           <input
             type="text"
             placeholder="Send a message..."
+            aria-label="Group message"
             value={msgInput()}
             onInput={(e) => setMsgInput(e.target.value)}
             disabled={sending()}

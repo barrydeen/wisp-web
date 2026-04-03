@@ -13,6 +13,7 @@ const Streams = lazy(() => import("./views/Streams"));
 const Settings = lazy(() => import("./views/Settings"));
 const Wallet = lazy(() => import("./views/Wallet"));
 const Thread = lazy(() => import("./views/Thread"));
+const Notifications = lazy(() => import("./views/Notifications"));
 
 const routes = [
   { path: "/", component: Feed },
@@ -23,6 +24,7 @@ const routes = [
   { path: "/chat/:channelId", component: Chat },
   { path: "/groups", component: Groups },
   { path: "/groups/:groupCode", component: Groups },
+  { path: "/notifications", component: Notifications },
   { path: "/messages", component: Messages },
   { path: "/messages/:pubkey", component: Messages },
   { path: "/streams", component: Streams },

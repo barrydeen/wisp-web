@@ -1,4 +1,4 @@
-import { Show, For, createSignal, createMemo, onCleanup } from "solid-js";
+import { Show, For, createSignal, createMemo, createEffect, onCleanup } from "solid-js";
 import { isWalletConnected, getBalance } from "../lib/wallet";
 import { sendZap, ZAP_PRESETS, isZapping, getZapInFlight } from "../lib/zap";
 import { formatSats } from "../lib/utils";
@@ -78,15 +78,19 @@ export function ZapDialog(props) {
     setSending(false);
   }
 
-  // Close on escape
-  function onKey(e) {
-    if (e.key === "Escape") handleClose();
-  }
+  // Close on escape — document-level listener so it fires regardless of focus
+  createEffect(() => {
+    if (props.isOpen) {
+      const handler = (e) => { if (e.key === "Escape") handleClose(); };
+      document.addEventListener("keydown", handler);
+      onCleanup(() => document.removeEventListener("keydown", handler));
+    }
+  });
 
   return (
     <Show when={props.isOpen}>
-      <div style={styles.overlay} onClick={handleClose} onKeyDown={onKey}>
-        <div style={styles.dialog} onClick={(e) => e.stopPropagation()}>
+      <div style={styles.overlay} onClick={handleClose}>
+        <div style={styles.dialog} role="dialog" aria-modal="true" aria-labelledby="zap-dialog-title" onClick={(e) => e.stopPropagation()}>
           {/* Not connected state */}
           <Show when={!connected()}>
             <div style={{ "text-align": "center", padding: "20px 0" }}>
@@ -104,8 +108,8 @@ export function ZapDialog(props) {
           <Show when={connected()}>
             {/* Header */}
             <div style={styles.header}>
-              <span style={{ color: "#f7931a", "font-size": "18px" }}>&#9889;</span>
-              <span>Zap {props.recipientName || "user"}</span>
+              <span style={{ color: "var(--w-action-zap)", "font-size": "18px" }}>&#9889;</span>
+              <span id="zap-dialog-title">Zap {props.recipientName || "user"}</span>
               <button style={styles.closeBtn} onClick={handleClose}>&times;</button>
             </div>
 
@@ -164,6 +168,7 @@ export function ZapDialog(props) {
                   style={styles.input}
                   type="number"
                   placeholder="Enter amount in sats"
+                  aria-label="Zap amount in sats"
                   value={customAmount()}
                   onInput={(e) => setCustomAmount(e.target.value)}
                   min="1"
@@ -175,6 +180,7 @@ export function ZapDialog(props) {
                 style={{ ...styles.input, "margin-top": "8px" }}
                 type="text"
                 placeholder="Add a message (optional)"
+                aria-label="Zap message"
                 value={message()}
                 onInput={(e) => setMessage(e.target.value)}
               />
@@ -191,7 +197,7 @@ export function ZapDialog(props) {
 
               {/* Error */}
               <Show when={error()}>
-                <div style={{ "font-size": "13px", color: "#ef4444", "margin-top": "8px" }}>{error()}</div>
+                <div style={{ "font-size": "13px", color: "var(--w-error)", "margin-top": "8px" }}>{error()}</div>
               </Show>
 
               {/* Zap button */}
@@ -217,7 +223,7 @@ const styles = {
   overlay: {
     position: "fixed",
     inset: 0,
-    background: "rgba(0,0,0,0.5)",
+    background: "var(--w-overlay)",
     display: "flex",
     "align-items": "center",
     "justify-content": "center",
@@ -228,8 +234,8 @@ const styles = {
     "border-radius": "12px",
     border: "1px solid var(--w-border)",
     padding: "20px",
-    width: "360px",
-    "max-width": "90vw",
+    width: "90vw",
+    "max-width": "360px",
     "max-height": "85vh",
     overflow: "auto",
   },
@@ -280,9 +286,9 @@ const styles = {
     transition: "all 0.1s",
   },
   presetChipActive: {
-    background: "#f7931a",
-    "border-color": "#f7931a",
-    color: "#fff",
+    background: "var(--w-action-zap)",
+    "border-color": "var(--w-action-zap)",
+    color: "var(--w-btn-text)",
   },
   input: {
     width: "100%",
@@ -308,8 +314,8 @@ const styles = {
     padding: "10px",
     "border-radius": "8px",
     border: "none",
-    background: "#f7931a",
-    color: "#fff",
+    background: "var(--w-action-zap)",
+    color: "var(--w-btn-text)",
     "font-size": "14px",
     "font-weight": 600,
     cursor: "pointer",
@@ -321,7 +327,7 @@ const styles = {
     "border-radius": "8px",
     border: "none",
     "background-color": "var(--w-accent)",
-    color: "#fff",
+    color: "var(--w-btn-text)",
     "font-size": "14px",
     "font-weight": 600,
     cursor: "pointer",

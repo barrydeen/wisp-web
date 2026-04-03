@@ -117,10 +117,14 @@ export function updateContent(text, cursorPos) {
 const HASHTAG_REGEX = /(?:^|(?<=\s))#([a-zA-Z0-9_]+)/g;
 
 function detectHashtags(text) {
+  const seen = new Set();
   const matches = [];
   for (const match of text.matchAll(HASHTAG_REGEX)) {
     const tag = match[1].toLowerCase();
-    if (!matches.includes(tag)) matches.push(tag);
+    if (!seen.has(tag)) {
+      seen.add(tag);
+      matches.push(tag);
+    }
   }
   setHashtags(matches);
 }

@@ -83,7 +83,7 @@ function ConversationCard(props) {
           </div>
         }
       >
-        <img src={avatar()} style={styles.avatarImg} />
+        <img src={avatar()} alt="" style={styles.avatarImg} />
       </Show>
       <div style={styles.convBody}>
         <div style={styles.convTop}>
@@ -184,6 +184,7 @@ function ConversationView(props) {
             onInput={(e) => setDraft(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Write a message..."
+            aria-label="Type a message"
             style={styles.sendInput}
             rows="1"
           />

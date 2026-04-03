@@ -11,13 +11,14 @@ import {
 import { avatarColor, npubShort } from "../lib/utils";
 import { Composer } from "./Composer";
 import { openComposer } from "../lib/compose";
+import { getHasUnread } from "../lib/notifications";
 import logoUrl from "../assets/wisp-logo.svg";
 
 export function Layout(props) {
   const profile = createMemo(() => getUserProfile());
   const state = createMemo(() => getLoginState());
   const pk = createMemo(() => getPubkey());
-  const color = createMemo(() => pk() ? avatarColor(pk()) : "#333");
+  const color = createMemo(() => pk() ? avatarColor(pk()) : "var(--w-text-muted)");
 
   const displayName = createMemo(() => {
     const p = profile();
@@ -35,73 +36,130 @@ export function Layout(props) {
   }
 
   return (
-    <div style={styles.container}>
-      <nav style={styles.nav}>
-        <A href="/" style={styles.logo}>
-          <img src={logoUrl} style={styles.logoImg} alt="" />
-          wisp
-        </A>
-
-        <div style={styles.links}>
-          <A href="/" style={styles.link} activeClass="active">feed</A>
-          <A href="/chat" style={styles.link} activeClass="active">chat</A>
-          <A href="/streams" style={styles.link} activeClass="active">streams</A>
-          <A href="/groups" style={styles.link} activeClass="active">groups</A>
-          <A href="/messages" style={styles.link} activeClass="active">messages</A>
-          <A href="/wallet" style={styles.link} activeClass="active">wallet</A>
-          <A href="/settings" style={styles.link} activeClass="active">settings</A>
-        </div>
-
-        <Show when={state() === "logged-in"}>
-          <button onClick={openComposer} style={styles.newNoteBtn}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            New Note
-          </button>
-        </Show>
-
-        <div style={styles.spacer} />
-
-        <Show
-          when={state() === "logged-in"}
-          fallback={
-            <button
-              onClick={handleLogin}
-              disabled={state() === "logging-in"}
-              style={styles.loginBtn}
-            >
-              {state() === "logging-in" ? "Connecting..." : "Log in"}
-            </button>
+    <>
+      <style>{`
+        @media (max-width: 768px) {
+          .wisp-layout {
+            flex-direction: column !important;
           }
-        >
-          <div style={styles.userSection}>
-            <A href={`/profile/${pk()}`} style={styles.userLink}>
-              <Show
-                when={avatar()}
-                fallback={
-                  <div style={{ ...styles.avatarFallback, "background-color": color() }}>
-                    {pk()?.slice(0, 2).toUpperCase()}
-                  </div>
-                }
-              >
-                <img src={avatar()} style={styles.avatarImg} />
+          .wisp-nav {
+            width: 100% !important;
+            height: auto !important;
+            flex-direction: row !important;
+            position: fixed !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            top: auto !important;
+            z-index: 100;
+            border-right: none !important;
+            border-top: 1px solid var(--w-border) !important;
+            padding: 0 !important;
+            justify-content: center !important;
+            background: var(--w-bg-primary) !important;
+            gap: 0 !important;
+          }
+          .wisp-nav-links {
+            flex-direction: row !important;
+            overflow-x: auto;
+            justify-content: space-around !important;
+            width: 100% !important;
+            gap: 0 !important;
+          }
+          .wisp-nav-links a {
+            font-size: 11px !important;
+            padding: 10px 6px !important;
+            text-align: center;
+            white-space: nowrap;
+          }
+          .wisp-logo,
+          .wisp-user-section,
+          .wisp-new-note,
+          .wisp-logout,
+          .wisp-spacer,
+          .wisp-login-btn {
+            display: none !important;
+          }
+          .wisp-main {
+            padding-bottom: 60px !important;
+          }
+        }
+      `}</style>
+      <div style={styles.container} class="wisp-layout">
+        <nav style={styles.nav} class="wisp-nav">
+          <A href="/" style={styles.logo} class="wisp-logo">
+            <img src={logoUrl} style={styles.logoImg} alt="" />
+            wisp
+          </A>
+
+          <div style={styles.links} class="wisp-nav-links">
+            <A href="/" style={styles.link} activeClass="active">feed</A>
+            <A href="/chat" style={styles.link} activeClass="active">chat</A>
+            <A href="/streams" style={styles.link} activeClass="active">streams</A>
+            <A href="/groups" style={styles.link} activeClass="active">groups</A>
+            <div style={styles.notifLinkWrap}>
+              <A href="/notifications" style={styles.link} activeClass="active">notifications</A>
+              <Show when={getHasUnread()}>
+                <div style={styles.unreadDot} />
               </Show>
-              <div style={styles.userInfo}>
-                <span style={styles.userName}>{displayName()}</span>
-              </div>
-            </A>
-            <button onClick={logout} style={styles.logoutBtn}>
-              Log out
-            </button>
+            </div>
+            <A href="/messages" style={styles.link} activeClass="active">messages</A>
+            <A href="/wallet" style={styles.link} activeClass="active">wallet</A>
+            <A href="/settings" style={styles.link} activeClass="active">settings</A>
           </div>
-        </Show>
-      </nav>
-      <main style={styles.main}>
-        {props.children}
-      </main>
-      <Composer />
-    </div>
+
+          <Show when={state() === "logged-in"}>
+            <button onClick={openComposer} style={styles.newNoteBtn} class="wisp-new-note">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              New Note
+            </button>
+          </Show>
+
+          <div style={styles.spacer} class="wisp-spacer" />
+
+          <Show
+            when={state() === "logged-in"}
+            fallback={
+              <button
+                onClick={handleLogin}
+                disabled={state() === "logging-in"}
+                style={styles.loginBtn}
+                class="wisp-login-btn"
+              >
+                {state() === "logging-in" ? "Connecting..." : "Log in"}
+              </button>
+            }
+          >
+            <div style={styles.userSection} class="wisp-user-section">
+              <A href={`/profile/${pk()}`} style={styles.userLink}>
+                <Show
+                  when={avatar()}
+                  fallback={
+                    <div style={{ ...styles.avatarFallback, "background-color": color() }}>
+                      {pk()?.slice(0, 2).toUpperCase()}
+                    </div>
+                  }
+                >
+                  <img src={avatar()} style={styles.avatarImg} alt={displayName() || "Your avatar"} />
+                </Show>
+                <div style={styles.userInfo}>
+                  <span style={styles.userName}>{displayName()}</span>
+                </div>
+              </A>
+              <button onClick={logout} style={styles.logoutBtn} aria-label="Log out" class="wisp-logout">
+                Log out
+              </button>
+            </div>
+          </Show>
+        </nav>
+        <main style={styles.main} class="wisp-main">
+          {props.children}
+        </main>
+        <Composer />
+      </div>
+    </>
   );
 }
 
@@ -146,6 +204,18 @@ const styles = {
     "font-size": "15px",
     color: "var(--w-text-tertiary)",
     transition: "background 0.15s, color 0.15s",
+  },
+  notifLinkWrap: {
+    position: "relative",
+  },
+  unreadDot: {
+    position: "absolute",
+    top: "8px",
+    right: "8px",
+    width: "7px",
+    height: "7px",
+    "border-radius": "50%",
+    background: "var(--w-live)",
   },
   newNoteBtn: {
     display: "flex",

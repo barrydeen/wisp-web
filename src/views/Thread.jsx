@@ -29,12 +29,12 @@ const CloseIcon = () => (
 
 function ReplyNode(props) {
   const children = createMemo(() => props.tree.get(props.event.id) || []);
-  const depth = () => Math.min(props.depth, 4);
 
   return (
     <div
       style={{
-        "margin-left": `${depth() * 20}px`,
+        "margin-left": props.depth > 0 ? "10px" : "0",
+        "padding-left": props.depth > 0 ? "6px" : "0",
         "border-left": props.depth > 0 ? "2px solid var(--w-border-secondary)" : "none",
       }}
     >
@@ -60,8 +60,11 @@ function ReplyCompose(props) {
 
   function autoGrow() {
     if (textareaRef) {
-      textareaRef.style.height = "auto";
-      textareaRef.style.height = textareaRef.scrollHeight + "px";
+      requestAnimationFrame(() => {
+        textareaRef.style.height = "auto";
+        const h = textareaRef.scrollHeight;
+        textareaRef.style.height = h + "px";
+      });
     }
   }
 
@@ -185,6 +188,7 @@ function ReplyCompose(props) {
         onInput={handleInput}
         onKeyDown={handleKeyDown}
         placeholder="Post your reply..."
+        aria-label="Write your reply"
         style={replyStyles.textarea}
         rows={2}
       />
@@ -196,9 +200,9 @@ function ReplyCompose(props) {
             {(media) => (
               <div style={replyStyles.mediaItem}>
                 {media.mimeType?.startsWith("video/") ? (
-                  <video src={media.url} style={replyStyles.mediaThumbnail} muted />
+                  <video src={media.url} alt="Upload preview" style={replyStyles.mediaThumbnail} muted />
                 ) : (
-                  <img src={media.url} style={replyStyles.mediaThumbnail} loading="lazy" />
+                  <img src={media.url} alt="Upload preview" style={replyStyles.mediaThumbnail} loading="lazy" />
                 )}
                 <button onClick={() => removeMedia(media.url)} style={replyStyles.mediaRemoveBtn}>
                   <CloseIcon />
@@ -452,9 +456,9 @@ const replyStyles = {
     position: "absolute",
     top: "2px",
     right: "2px",
-    background: "rgba(0,0,0,0.6)",
+    background: "var(--w-overlay-btn)",
     border: "none",
-    color: "#fff",
+    color: "var(--w-text-primary)",
     cursor: "pointer",
     "border-radius": "50%",
     width: "20px",
@@ -474,9 +478,9 @@ const replyStyles = {
     "margin-top": "8px",
     padding: "8px 12px",
     "border-radius": "8px",
-    background: "rgba(200,60,60,0.1)",
-    border: "1px solid rgba(200,60,60,0.2)",
-    color: "#cc4444",
+    background: "var(--w-error-subtle)",
+    border: "1px solid var(--w-error-border)",
+    color: "var(--w-error)",
     "font-size": "13px",
   },
   toolbar: {

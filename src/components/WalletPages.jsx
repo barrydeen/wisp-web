@@ -77,7 +77,7 @@ const s = {
     "border-radius": "8px",
     border: "none",
     "background-color": "var(--w-accent)",
-    color: "#fff",
+    color: "var(--w-btn-text)",
     "font-size": "14px",
     "font-weight": 600,
     cursor: "pointer",
@@ -97,9 +97,9 @@ const s = {
   dangerBtn: {
     padding: "10px 20px",
     "border-radius": "8px",
-    border: "1px solid #ef4444",
+    border: "1px solid var(--w-error)",
     background: "transparent",
-    color: "#ef4444",
+    color: "var(--w-error)",
     "font-size": "14px",
     cursor: "pointer",
     width: "100%",
@@ -124,7 +124,7 @@ const s = {
   },
   error: {
     "font-size": "13px",
-    color: "#ef4444",
+    color: "var(--w-error)",
     "margin-top": "8px",
   },
   success: {
@@ -755,7 +755,7 @@ export function SendResult() {
         <div style={{ "font-size": "48px", "margin-bottom": "12px" }}>
           {result === "success" ? "\u2713" : "\u2717"}
         </div>
-        <p style={{ "font-size": "15px", color: result === "success" ? "var(--w-success)" : "#ef4444" }}>
+        <p style={{ "font-size": "15px", color: result === "success" ? "var(--w-success)" : "var(--w-error)" }}>
           {result === "success" ? "Payment sent successfully." : "Payment failed."}
         </p>
       </div>
@@ -1042,8 +1042,8 @@ export function WalletSettings() {
       </Show>
 
       <Show when={confirmDelete()}>
-        <div style={{ ...s.card, "border-color": "#ef4444", "margin-top": "20px" }}>
-          <p style={{ "font-size": "14px", color: "#ef4444", "margin-bottom": "12px" }}>
+        <div style={{ ...s.card, "border-color": "var(--w-error)", "margin-top": "20px" }}>
+          <p style={{ "font-size": "14px", color: "var(--w-error)", "margin-bottom": "12px" }}>
             Are you sure? This will remove the wallet connection{mode() === "spark" ? " and your local recovery phrase" : ""}.
           </p>
           <div style={s.row}>
@@ -1160,6 +1160,7 @@ function LightningAddressSection() {
             style={{ ...s.input, flex: 1, width: "auto", "min-width": 0 }}
             type="text"
             placeholder="username"
+            aria-label="Lightning address username"
             value={username()}
             onInput={(e) => { setUsername(e.target.value); setAvailable(null); setError(null); }}
           />
