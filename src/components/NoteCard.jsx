@@ -2,11 +2,12 @@ import { createMemo, createSignal, createEffect, Show, onCleanup } from "solid-j
 import { A, useNavigate } from "@solidjs/router";
 import { nip19 } from "nostr-tools";
 import { getProfile } from "../lib/profiles";
-import { formatTime, npubShort, avatarColor, formatNip05, extractClientTag } from "../lib/utils";
+import { formatTime, npubShort, avatarColor, formatNip05, extractClientTag, formatSats } from "../lib/utils";
 import { RichContent } from "./RichContent";
 import { ZapDialog } from "./ZapDialog";
 import { getLoginState } from "../lib/identity";
 import { isZapping } from "../lib/zap";
+import { getReplyCount, getRepostCount, getReactionCount, getZapSats, hasUserReacted, hasUserReposted } from "../lib/engagement";
 
 // --- SVG Icon factories (must return fresh DOM nodes per instance) ---
 
@@ -54,7 +55,7 @@ function ActionButton(props) {
     <button
       style={{
         ...styles.actionBtn,
-        color: hovered() ? props.hoverColor : "var(--w-text-muted)",
+        color: props.active ? props.hoverColor : hovered() ? props.hoverColor : "var(--w-text-muted)",
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -161,8 +162,36 @@ export function NoteCard(props) {
     setShowZap(true);
   }
 
+  // Engagement counts
+  const replyCount = createMemo(() => getReplyCount(props.note.id));
+  const repostCount = createMemo(() => getRepostCount(props.note.id));
+  const reactionCount = createMemo(() => getReactionCount(props.note.id));
+  const zapAmount = createMemo(() => getZapSats(props.note.id));
+  const zapDisplay = createMemo(() => {
+    if (isZapping(props.note.id)) return "...";
+    const sats = zapAmount();
+    return sats > 0 ? formatSats(sats) : "";
+  });
+
+  // Viewport visibility detection
+  let cardRef;
+  createEffect(() => {
+    if (!cardRef || !props.onVisible) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          props.onVisible(props.note);
+          observer.unobserve(cardRef);
+        }
+      },
+      { rootMargin: "200px 0px" },
+    );
+    observer.observe(cardRef);
+    onCleanup(() => observer.disconnect());
+  });
+
   return (
-    <article style={{ ...styles.card, cursor: "pointer" }} onClick={handleCardClick}>
+    <article ref={cardRef} style={{ ...styles.card, cursor: "pointer" }} onClick={handleCardClick}>
       <A href={`/profile/${props.note.pubkey}`} style={styles.avatarCol} onClick={(e) => e.stopPropagation()}>
         {avatar() ? (
           <img src={avatar()} style={styles.avatarImg} loading="lazy" />
@@ -239,12 +268,12 @@ export function NoteCard(props) {
 
         {/* Action bar */}
         <div style={styles.actionBar}>
-          <ActionButton icon={ReplyIcon} count={0} hoverColor="#1d9bf0" />
-          <ActionButton icon={RepostIcon} count={0} hoverColor="#00ba7c" />
-          <ActionButton icon={LikeIcon} count={0} hoverColor="#f91880" />
+          <ActionButton icon={ReplyIcon} count={replyCount()} hoverColor="#1d9bf0" />
+          <ActionButton icon={RepostIcon} count={repostCount()} hoverColor="#00ba7c" active={hasUserReposted(props.note.id)} />
+          <ActionButton icon={LikeIcon} count={reactionCount()} hoverColor="#f91880" active={hasUserReacted(props.note.id)} />
           <ActionButton
             icon={ZapIcon}
-            count={isZapping(props.note.id) ? "..." : ""}
+            count={zapDisplay()}
             hoverColor="#f7931a"
             onClick={handleZapClick}
           />
