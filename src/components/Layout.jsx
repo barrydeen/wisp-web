@@ -11,6 +11,7 @@ import {
 import { avatarColor, npubShort } from "../lib/utils";
 import { Composer } from "./Composer";
 import { openComposer } from "../lib/compose";
+import logoUrl from "../assets/wisp-logo.svg";
 
 export function Layout(props) {
   const profile = createMemo(() => getUserProfile());
@@ -36,7 +37,10 @@ export function Layout(props) {
   return (
     <div style={styles.container}>
       <nav style={styles.nav}>
-        <A href="/" style={styles.logo}>wisp</A>
+        <A href="/" style={styles.logo}>
+          <img src={logoUrl} style={styles.logoImg} alt="" />
+          wisp
+        </A>
 
         <div style={styles.links}>
           <A href="/" style={styles.link} activeClass="active">feed</A>
@@ -119,10 +123,17 @@ const styles = {
     height: "100vh",
   },
   logo: {
+    display: "flex",
+    "align-items": "center",
+    gap: "8px",
     "font-size": "22px",
     "font-weight": 700,
     "letter-spacing": "-0.03em",
     color: "var(--w-text-primary)",
+  },
+  logoImg: {
+    width: "26px",
+    height: "26px",
   },
   links: {
     display: "flex",
