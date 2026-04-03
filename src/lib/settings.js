@@ -123,6 +123,46 @@ const themes = {
       "--w-btn-text": "#faf8ff",
     },
   },
+  ember: {
+    dark: {
+      "--w-bg-primary": "#0a0a0a",
+      "--w-bg-secondary": "#141010",
+      "--w-bg-tertiary": "#110e0c",
+      "--w-bg-hover": "#1e1610",
+      "--w-border": "#1a1410",
+      "--w-border-secondary": "#141010",
+      "--w-border-input": "#332818",
+      "--w-border-subtle": "#2a2015",
+      "--w-text-primary": "#fff",
+      "--w-text-secondary": "#ccb8a0",
+      "--w-text-tertiary": "#8a7060",
+      "--w-text-muted": "#5a4838",
+      "--w-accent": "#E97941",
+      "--w-accent-subtle": "#3a2010",
+      "--w-success": "#44aa99",
+      "--w-btn-bg": "#fff",
+      "--w-btn-text": "#000",
+    },
+    light: {
+      "--w-bg-primary": "#fffaf5",
+      "--w-bg-secondary": "#f5ece0",
+      "--w-bg-tertiary": "#ebe0d2",
+      "--w-bg-hover": "#e0d4c4",
+      "--w-border": "#ddd0c0",
+      "--w-border-secondary": "#e8dcd0",
+      "--w-border-input": "#c0a888",
+      "--w-border-subtle": "#d0c0a8",
+      "--w-text-primary": "#1a1008",
+      "--w-text-secondary": "#3a2810",
+      "--w-text-tertiary": "#7a6040",
+      "--w-text-muted": "#a08860",
+      "--w-accent": "#E97941",
+      "--w-accent-subtle": "#f5dcc8",
+      "--w-success": "#2e8b72",
+      "--w-btn-bg": "#1a1008",
+      "--w-btn-text": "#fffaf5",
+    },
+  },
 };
 
 const fonts = {
@@ -166,7 +206,7 @@ const saved = loadSettings();
 
 // --- Signals ---
 
-const [theme, setThemeSignal] = createSignal(saved.theme || "zinc");
+const [theme, setThemeSignal] = createSignal(saved.theme || "ember");
 const [mode, setModeSignal] = createSignal(saved.mode || "dark");
 const [font, setFontSignal] = createSignal(saved.font || "inter");
 const [fontSize, setFontSizeSignal] = createSignal(saved.fontSize || "default");
