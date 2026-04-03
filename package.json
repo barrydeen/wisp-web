@@ -8,10 +8,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@breeztech/breez-sdk-spark": "^0.12.2",
     "@solidjs/router": "^0.15.0",
     "hls.js": "^1.6.15",
     "nostr-tools": "^2.10.0",
-    "solid-js": "^1.9.0"
+    "qrcode": "^1.5.4",
+    "solid-js": "^1.9.0",
+    "vite-plugin-top-level-await": "^1.6.0",
+    "vite-plugin-wasm": "^3.6.0"
   },
   "devDependencies": {
     "vite": "^6.0.0",
