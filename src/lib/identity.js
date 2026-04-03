@@ -45,6 +45,7 @@ export async function login() {
     // Start outbox pipeline immediately so feed data flows before user navigates
     import("./outbox").then(({ initFollowFeed }) => initFollowFeed(pk));
     import("./relays").then(({ fetchOwnRelayLists }) => fetchOwnRelayLists(pk));
+    import("./wallet").then(({ initWallet }) => initWallet(pk));
 
     return pk;
   } catch (err) {
@@ -62,6 +63,7 @@ export function logout() {
   clearCache();
   import("./outbox").then(({ clearFollowFeed }) => clearFollowFeed());
   import("./relays").then(({ clearRelayState }) => clearRelayState());
+  import("./wallet").then(({ clearWallet }) => clearWallet());
 }
 
 // Restore session on page load
@@ -69,6 +71,7 @@ if (stored) {
   fetchUserProfile(stored);
   import("./outbox").then(({ initFollowFeed }) => initFollowFeed(stored));
   import("./relays").then(({ fetchOwnRelayLists }) => fetchOwnRelayLists(stored));
+  import("./wallet").then(({ initWallet }) => initWallet(stored));
 }
 
 function fetchUserProfile(pk) {

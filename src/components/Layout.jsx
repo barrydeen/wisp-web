@@ -44,6 +44,7 @@ export function Layout(props) {
           <A href="/streams" style={styles.link} activeClass="active">streams</A>
           <A href="/groups" style={styles.link} activeClass="active">groups</A>
           <A href="/messages" style={styles.link} activeClass="active">messages</A>
+          <A href="/wallet" style={styles.link} activeClass="active">wallet</A>
           <A href="/settings" style={styles.link} activeClass="active">settings</A>
         </div>
 

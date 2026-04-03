@@ -4,6 +4,9 @@ import { nip19 } from "nostr-tools";
 import { getProfile } from "../lib/profiles";
 import { formatTime, npubShort, avatarColor, formatNip05, extractClientTag } from "../lib/utils";
 import { RichContent } from "./RichContent";
+import { ZapDialog } from "./ZapDialog";
+import { getLoginState } from "../lib/identity";
+import { isZapping } from "../lib/zap";
 
 // --- SVG Icon factories (must return fresh DOM nodes per instance) ---
 
@@ -55,10 +58,10 @@ function ActionButton(props) {
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      onClick={(e) => e.stopPropagation()}
+      onClick={(e) => { e.stopPropagation(); props.onClick?.(e); }}
     >
       {props.icon()}
-      <span style={styles.actionCount}>{props.count}</span>
+      <span style={styles.actionCount}>{props.count || ""}</span>
     </button>
   );
 }
@@ -145,6 +148,19 @@ export function NoteCard(props) {
   // Dropdown item hover
   const [hoveredItem, setHoveredItem] = createSignal(null);
 
+  // Zap dialog
+  const [showZap, setShowZap] = createSignal(false);
+
+  const recipientLud16 = createMemo(() => {
+    const p = profile();
+    return p?.lud16 || null;
+  });
+
+  function handleZapClick() {
+    if (getLoginState() !== "logged-in") return;
+    setShowZap(true);
+  }
+
   return (
     <article style={{ ...styles.card, cursor: "pointer" }} onClick={handleCardClick}>
       <A href={`/profile/${props.note.pubkey}`} style={styles.avatarCol} onClick={(e) => e.stopPropagation()}>
@@ -226,9 +242,24 @@ export function NoteCard(props) {
           <ActionButton icon={ReplyIcon} count={0} hoverColor="#1d9bf0" />
           <ActionButton icon={RepostIcon} count={0} hoverColor="#00ba7c" />
           <ActionButton icon={LikeIcon} count={0} hoverColor="#f91880" />
-          <ActionButton icon={ZapIcon} count={0} hoverColor="#f7931a" />
+          <ActionButton
+            icon={ZapIcon}
+            count={isZapping(props.note.id) ? "..." : ""}
+            hoverColor="#f7931a"
+            onClick={handleZapClick}
+          />
         </div>
 
+        <ZapDialog
+          isOpen={showZap()}
+          onClose={() => setShowZap(false)}
+          recipientPubkey={props.note.pubkey}
+          recipientName={displayName()}
+          recipientLud16={recipientLud16()}
+          eventId={props.note.id}
+          eventKind={props.note.kind || 1}
+          eventTags={props.note.tags}
+        />
       </div>
     </article>
   );

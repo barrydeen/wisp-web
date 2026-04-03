@@ -11,6 +11,7 @@ const Groups = lazy(() => import("./views/Groups"));
 const Messages = lazy(() => import("./views/Messages"));
 const Streams = lazy(() => import("./views/Streams"));
 const Settings = lazy(() => import("./views/Settings"));
+const Wallet = lazy(() => import("./views/Wallet"));
 const Thread = lazy(() => import("./views/Thread"));
 
 const routes = [
@@ -26,6 +27,7 @@ const routes = [
   { path: "/messages/:pubkey", component: Messages },
   { path: "/streams", component: Streams },
   { path: "/streams/:naddr", component: Streams },
+  { path: "/wallet", component: Wallet },
   { path: "/settings", component: Settings },
 ];
 

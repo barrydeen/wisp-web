@@ -24,6 +24,7 @@ import { getPool, getRelays, createSubscription } from "../lib/pool";
 import { getProfile } from "../lib/profiles";
 import { getPubkey, getLoginState } from "../lib/identity";
 import { formatTime, npubShort, avatarColor, formatSats } from "../lib/utils";
+import { ZapDialog } from "../components/ZapDialog";
 
 export default function Streams() {
   const params = useParams();
@@ -398,6 +399,8 @@ function StreamInfoBar(props) {
   });
   const avatar = createMemo(() => profile()?.picture);
   const color = createMemo(() => avatarColor(props.stream.streamerPubkey));
+  const lud16 = createMemo(() => profile()?.lud16 || null);
+  const [showZap, setShowZap] = createSignal(false);
 
   return (
     <div style={viewStyles.infoBar}>
@@ -425,9 +428,19 @@ function StreamInfoBar(props) {
             <ZapIcon size={14} /> {formatSats(props.zapTotal)}
           </span>
         </Show>
-        <button style={viewStyles.zapStreamBtn} disabled title="Wallet coming soon">
+        <button style={viewStyles.zapStreamBtn} onClick={() => setShowZap(true)}>
           <ZapIcon size={16} /> Zap
         </button>
+        <ZapDialog
+          isOpen={showZap()}
+          onClose={() => setShowZap(false)}
+          recipientPubkey={props.stream.streamerPubkey}
+          recipientName={name()}
+          recipientLud16={lud16()}
+          eventId={props.stream.id || null}
+          eventKind={30311}
+          eventTags={[]}
+        />
       </div>
     </div>
   );
@@ -482,6 +495,8 @@ function ChatMessage(props) {
     const p = profile();
     return p?.display_name || p?.name || npubShort(props.msg.pubkey);
   });
+  const lud16 = createMemo(() => profile()?.lud16 || null);
+  const [showZap, setShowZap] = createSignal(false);
 
   return (
     <div style={viewStyles.msg}>
@@ -515,8 +530,8 @@ function ChatMessage(props) {
           </button>
           <button
             style={viewStyles.msgActionBtn}
-            disabled
-            title="Wallet coming soon"
+            onClick={() => setShowZap(true)}
+            title="Zap"
           >
             <ZapIcon size={14} />
             <Show when={props.zapAmount > 0}>
@@ -525,6 +540,16 @@ function ChatMessage(props) {
               </span>
             </Show>
           </button>
+          <ZapDialog
+            isOpen={showZap()}
+            onClose={() => setShowZap(false)}
+            recipientPubkey={props.msg.pubkey}
+            recipientName={name()}
+            recipientLud16={lud16()}
+            eventId={props.msg.id}
+            eventKind={1311}
+            eventTags={props.msg.tags || []}
+          />
         </div>
       </div>
     </div>
