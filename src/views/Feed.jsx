@@ -9,6 +9,7 @@ import { getLiveStreams, initStreamDiscovery, cleanupStreamDiscovery } from "../
 import { getProfile } from "../lib/profiles";
 import { avatarColor, npubShort } from "../lib/utils";
 import { getRelaySets, getRelayList } from "../lib/relays";
+import { subscribeEngagement, clearEngagement } from "../lib/engagement";
 
 function ProgressStep(props) {
   const icon = createMemo(() => {
@@ -350,7 +351,30 @@ export default function Feed() {
   onCleanup(() => {
     globalSub()?.cleanup();
     relaySub()?.cleanup();
+    clearEngagement();
   });
+
+  // Clear engagement when feed type changes
+  createEffect(() => {
+    effectiveFeedType();
+    clearEngagement();
+  });
+
+  // Viewport-based engagement batching (300ms debounce)
+  let visibleBatch = [];
+  let engageBatchTimeout = null;
+
+  function handleNoteVisible(note) {
+    visibleBatch.push(note);
+    if (!engageBatchTimeout) {
+      engageBatchTimeout = setTimeout(() => {
+        const batch = visibleBatch;
+        visibleBatch = [];
+        engageBatchTimeout = null;
+        subscribeEngagement(batch);
+      }, 300);
+    }
+  }
 
   const events = createMemo(() => {
     const type = effectiveFeedType();
@@ -420,7 +444,7 @@ export default function Feed() {
         <p style={styles.empty}>{emptyMessage()}</p>
       </Show>
       <For each={events()}>
-        {(note) => <NoteCard note={note} />}
+        {(note) => <NoteCard note={note} onVisible={handleNoteVisible} />}
       </For>
     </div>
   );
