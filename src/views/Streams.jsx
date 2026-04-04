@@ -25,6 +25,9 @@ import { getProfile } from "../lib/profiles";
 import { getPubkey, getLoginState } from "../lib/identity";
 import { formatTime, npubShort, avatarColor, formatSats } from "../lib/utils";
 import { ZapDialog } from "../components/ZapDialog";
+import { EmojiPopup } from "../components/EmojiPopup";
+import { RichContent } from "../components/RichContent";
+import { searchEmojis } from "../lib/emojis";
 
 export default function Streams() {
   const params = useParams();
@@ -146,6 +149,9 @@ function StreamView(props) {
   const [chatSub, setChatSub] = createSignal(null);
   const [messageText, setMessageText] = createSignal("");
   const [sending, setSending] = createSignal(false);
+  const [emojiCandidates, setEmojiCandidates] = createSignal([]);
+  let emojiStartIndex = null;
+  let chatInputRef;
 
   const loggedIn = createMemo(() => getLoginState() === "logged-in");
 
@@ -257,6 +263,55 @@ function StreamView(props) {
     return amounts;
   });
 
+  function detectEmojiQuery(text, cursorPos) {
+    if (cursorPos === 0 || !text) {
+      setEmojiCandidates([]);
+      emojiStartIndex = null;
+      return;
+    }
+    for (let i = cursorPos - 1; i >= 0; i--) {
+      const c = text[i];
+      if (c === ":") {
+        if (i === 0 || /\s/.test(text[i - 1])) {
+          const between = text.substring(i + 1, cursorPos);
+          if (between.includes(":")) break;
+          if (between.length < 2) { setEmojiCandidates([]); emojiStartIndex = null; return; }
+          emojiStartIndex = i;
+          setEmojiCandidates(searchEmojis(between));
+          return;
+        }
+        break;
+      }
+      if (!/[a-zA-Z0-9_-]/.test(c)) break;
+    }
+    setEmojiCandidates([]);
+    emojiStartIndex = null;
+  }
+
+  function handleChatInput(e) {
+    setMessageText(e.target.value);
+    detectEmojiQuery(e.target.value, e.target.selectionStart);
+  }
+
+  function handleSelectEmoji(candidate) {
+    if (emojiStartIndex === null) return;
+    const text = messageText();
+    const cursor = chatInputRef?.selectionStart || text.length;
+    const inserted = ":" + candidate.shortcode + ":";
+    const before = text.substring(0, emojiStartIndex);
+    const after = cursor < text.length ? text.substring(cursor) : "";
+    const newText = before + inserted + " " + after;
+    const newCursor = before.length + inserted.length + 1;
+    setMessageText(newText);
+    setEmojiCandidates([]);
+    emojiStartIndex = null;
+    if (chatInputRef) {
+      chatInputRef.value = newText;
+      chatInputRef.selectionStart = newCursor;
+      chatInputRef.selectionEnd = newCursor;
+    }
+  }
+
   // Send chat message
   async function handleSend() {
     const s = stream();
@@ -308,27 +363,33 @@ function StreamView(props) {
               loggedIn={loggedIn()}
             />
             <Show when={loggedIn()}>
-              <div style={viewStyles.inputBar}>
-                <input
-                  type="text"
-                  placeholder="Chat..."
-                  aria-label="Stream chat message"
-                  value={messageText()}
-                  onInput={(e) => setMessageText(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  disabled={sending()}
-                  style={viewStyles.input}
-                />
-                <button
-                  onClick={handleSend}
-                  disabled={!messageText().trim() || sending()}
-                  style={{
-                    ...viewStyles.sendBtn,
-                    opacity: !messageText().trim() || sending() ? 0.4 : 1,
-                  }}
-                >
-                  {sending() ? "..." : "Send"}
-                </button>
+              <div style={{ position: "relative" }}>
+                <div style={{ position: "absolute", bottom: "100%", left: 0, right: 0 }}>
+                  <EmojiPopup candidates={emojiCandidates} onSelect={handleSelectEmoji} />
+                </div>
+                <div style={viewStyles.inputBar}>
+                  <input
+                    ref={chatInputRef}
+                    type="text"
+                    placeholder="Chat..."
+                    aria-label="Stream chat message"
+                    value={messageText()}
+                    onInput={handleChatInput}
+                    onKeyDown={handleKeyDown}
+                    disabled={sending()}
+                    style={viewStyles.input}
+                  />
+                  <button
+                    onClick={handleSend}
+                    disabled={!messageText().trim() || sending()}
+                    style={{
+                      ...viewStyles.sendBtn,
+                      opacity: !messageText().trim() || sending() ? 0.4 : 1,
+                    }}
+                  >
+                    {sending() ? "..." : "Send"}
+                  </button>
+                </div>
               </div>
             </Show>
           </>
@@ -510,7 +571,9 @@ function ChatMessage(props) {
             {formatTime(props.msg.created_at)}
           </span>
         </div>
-        <div style={viewStyles.msgContent}>{props.msg.content}</div>
+        <div style={viewStyles.msgContent}>
+          <RichContent content={props.msg.content} tags={props.msg.tags || []} />
+        </div>
         <div style={viewStyles.msgActions}>
           <button
             style={{

@@ -7,7 +7,7 @@ export function MentionPopup(props) {
 
   return (
     <Show when={props.candidates().length > 0}>
-      <div style={styles.container}>
+      <div style={styles.container} onMouseDown={(e) => e.preventDefault()}>
         <For each={props.candidates()}>
           {(candidate) => <MentionRow candidate={candidate} onSelect={props.onSelect} />}
         </For>

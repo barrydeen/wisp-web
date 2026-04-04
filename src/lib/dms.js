@@ -4,6 +4,7 @@ import * as nip44 from "nostr-tools/nip44";
 import { getPool, getRelays } from "./pool";
 import { getPubkey, INDEXER_RELAYS } from "./identity";
 import { fetchCachedMultiKind } from "./event-cache";
+import { buildEmojiTagsFromContent } from "./emojis";
 
 const TWO_DAYS = 2 * 24 * 60 * 60;
 
@@ -197,10 +198,11 @@ export async function sendDM(recipientPubkey, content) {
   if (!myPk || !content.trim()) return;
 
   // 1. Build unsigned kind 14 rumor
+  const emojiTags = buildEmojiTagsFromContent(content);
   const rumor = {
     kind: 14,
     created_at: Math.floor(Date.now() / 1000),
-    tags: [["p", recipientPubkey]],
+    tags: [["p", recipientPubkey], ...emojiTags],
     content: content.trim(),
     pubkey: myPk,
   };

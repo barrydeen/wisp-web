@@ -2,6 +2,7 @@ import { createSignal } from "solid-js";
 import { getPool, getRelays, publishEvent } from "./pool";
 import { getPubkey, INDEXER_RELAYS } from "./identity";
 import { fetchCachedEvent } from "./event-cache";
+import { buildEmojiTagsFromContent } from "./emojis";
 
 const STREAM_RELAYS = [
   "wss://relay.primal.net",
@@ -200,6 +201,9 @@ export async function sendChatMessage(stream, content, replyTo, chatRelays) {
       tags.push(["p", replyTo.pubkey]);
     }
   }
+
+  // Custom emoji tags (NIP-30)
+  tags.push(...buildEmojiTagsFromContent(content));
 
   return publishEvent(
     {

@@ -47,6 +47,7 @@ export async function login() {
     import("./relays").then(({ fetchOwnRelayLists }) => fetchOwnRelayLists(pk));
     import("./wallet").then(({ initWallet }) => initWallet(pk));
     import("./notifications").then(({ initNotifications }) => initNotifications(pk));
+    import("./emojis").then(({ fetchUserEmojiList }) => fetchUserEmojiList(pk));
 
     return pk;
   } catch (err) {
@@ -66,6 +67,7 @@ export function logout() {
   import("./relays").then(({ clearRelayState }) => clearRelayState());
   import("./wallet").then(({ clearWallet }) => clearWallet());
   import("./notifications").then(({ clearNotifications }) => clearNotifications());
+  import("./emojis").then(({ clearEmojiState }) => clearEmojiState());
 }
 
 // Restore session on page load
@@ -75,6 +77,7 @@ if (stored) {
   import("./relays").then(({ fetchOwnRelayLists }) => fetchOwnRelayLists(stored));
   import("./wallet").then(({ initWallet }) => initWallet(stored));
   import("./notifications").then(({ initNotifications }) => initNotifications(stored));
+  import("./emojis").then(({ fetchUserEmojiList }) => fetchUserEmojiList(stored));
 }
 
 function fetchUserProfile(pk) {

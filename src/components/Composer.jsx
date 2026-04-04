@@ -1,15 +1,25 @@
 import { Show, For, createSignal, createEffect, onCleanup } from "solid-js";
+import { Portal } from "solid-js/web";
+import { nip19 } from "nostr-tools";
 import { MentionPopup } from "./MentionPopup";
+import { EmojiPopup } from "./EmojiPopup";
+import { searchContacts } from "../lib/contacts";
+import { searchEmojis } from "../lib/emojis";
+import { npubShort } from "../lib/utils";
 import {
   composerOpen,
   closeComposer,
   content,
+  setContent,
   updateContent,
   publishing,
   error,
   uploadedMedia,
   uploadProgress,
   mentionCandidates,
+  setMentionCandidates,
+  emojiCandidates,
+  setEmojiCandidates,
   hashtags,
   explicit,
   galleryMode,
@@ -27,8 +37,6 @@ import {
   removePollOption,
   uploadFiles,
   removeMedia,
-  selectMention,
-  dismissMentions,
   initiatePublish,
   cancelCountdown,
   publishNow,
@@ -110,43 +118,211 @@ function ToggleBtn(props) {
   );
 }
 
+// --- Editor helpers ---
+
+function serializeNode(el) {
+  let result = "";
+  for (const node of el.childNodes) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      result += node.textContent;
+    } else if (node.nodeName === "BR") {
+      result += "\n";
+    } else if (node.nodeName === "IMG" && node.dataset.shortcode) {
+      result += ":" + node.dataset.shortcode + ":";
+    } else if (node.nodeName === "SPAN" && node.dataset.pubkey) {
+      const nprofile = nip19.nprofileEncode({ pubkey: node.dataset.pubkey });
+      result += "nostr:" + nprofile;
+    } else if (node.nodeName === "DIV" || node.nodeName === "P") {
+      if (result.length > 0 && !result.endsWith("\n")) result += "\n";
+      result += serializeNode(node);
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      result += serializeNode(node);
+    }
+  }
+  return result;
+}
+
+function detectTrigger(editorEl, triggerChar, minQueryLen, charFilter) {
+  const sel = window.getSelection();
+  if (!sel.rangeCount || !sel.isCollapsed) return null;
+  const node = sel.anchorNode;
+  if (!node || node.nodeType !== Node.TEXT_NODE) return null;
+  if (!editorEl.contains(node)) return null;
+
+  const text = node.textContent;
+  const offset = sel.anchorOffset;
+
+  for (let i = offset - 1; i >= 0; i--) {
+    if (text[i] === triggerChar) {
+      if (i === 0 || /\s/.test(text[i - 1])) {
+        const query = text.substring(i + 1, offset);
+        if (triggerChar === ":" && query.includes(":")) return null;
+        if (query.length < minQueryLen) return null;
+        return { query, node, start: i, end: offset };
+      }
+      return null;
+    }
+    if (/\s/.test(text[i])) return null;
+    if (charFilter && !charFilter.test(text[i])) return null;
+  }
+  return null;
+}
+
+function replaceRange(node, start, end, newElements) {
+  const text = node.textContent;
+  const before = text.substring(0, start);
+  const after = text.substring(end);
+
+  node.textContent = before;
+  const afterNode = document.createTextNode(" " + after);
+  const parent = node.parentNode;
+
+  // Insert new elements + afterNode after the text node
+  let insertBefore = node.nextSibling;
+  for (const el of newElements) {
+    parent.insertBefore(el, insertBefore);
+    insertBefore = el.nextSibling;
+  }
+  parent.insertBefore(afterNode, insertBefore);
+
+  // Place cursor after the space in afterNode
+  const sel = window.getSelection();
+  const range = document.createRange();
+  range.setStart(afterNode, 1);
+  range.collapse(true);
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
 // --- Main Composer ---
 
 export function Composer() {
-  let textareaRef;
+  let editorRef;
+  let modalRef;
   let fileInputRef;
 
-  // Auto-grow textarea
-  function autoGrow() {
-    if (textareaRef) {
-      requestAnimationFrame(() => {
-        textareaRef.style.height = "auto";
-        const h = textareaRef.scrollHeight;
-        textareaRef.style.height = h + "px";
-      });
+  // Detection state
+  let currentMentionDetection = null;
+  let currentEmojiDetection = null;
+  const [popupPos, setPopupPos] = createSignal(null);
+
+  function serializeEditor() {
+    if (!editorRef) return "";
+    return serializeNode(editorRef);
+  }
+
+  function syncContent() {
+    updateContent(serializeEditor());
+  }
+
+  function getCursorRect(det) {
+    try {
+      const range = document.createRange();
+      range.setStart(det.node, det.start);
+      range.setEnd(det.node, det.start);
+      return range.getBoundingClientRect();
+    } catch {
+      return null;
     }
   }
 
-  // Handle text input
-  function handleInput(e) {
-    updateContent(e.target.value, e.target.selectionStart);
-    autoGrow();
+  // Handle input — sync content, detect triggers
+  function handleInput() {
+    syncContent();
+
+    // Detect @mentions
+    const mention = detectTrigger(editorRef, "@", 0, null);
+    if (mention) {
+      currentMentionDetection = mention;
+      const candidates = searchContacts(mention.query);
+      setMentionCandidates(candidates);
+      setEmojiCandidates([]);
+      currentEmojiDetection = null;
+      if (candidates.length > 0) {
+        const rect = getCursorRect(mention);
+        if (rect) setPopupPos({ top: rect.bottom + 4, left: rect.left });
+      }
+      return;
+    }
+    currentMentionDetection = null;
+
+    // Detect :emoji:
+    const emoji = detectTrigger(editorRef, ":", 2, /[a-zA-Z0-9_-]/);
+    if (emoji) {
+      currentEmojiDetection = emoji;
+      const candidates = searchEmojis(emoji.query);
+      setEmojiCandidates(candidates);
+      if (candidates.length > 0) {
+        setMentionCandidates([]);
+        currentMentionDetection = null;
+        const rect = getCursorRect(emoji);
+        if (rect) setPopupPos({ top: rect.bottom + 4, left: rect.left });
+      }
+      return;
+    }
+    currentEmojiDetection = null;
+
+    setMentionCandidates([]);
+    setEmojiCandidates([]);
+    setPopupPos(null);
   }
 
-  // Track cursor on click/keyup too
-  function handleCursorChange(e) {
-    updateContent(content(), e.target.selectionStart);
+  // Also detect on cursor movement
+  function handleKeyUp(e) {
+    if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(e.key)) {
+      handleInput();
+    }
   }
 
-  // Handle mention selection — need to update textarea value + cursor
+  function handleClick() {
+    handleInput();
+  }
+
+  // Insert mention span
   function handleSelectMention(candidate) {
-    const result = selectMention(candidate);
-    if (result && textareaRef) {
-      textareaRef.value = result.text;
-      textareaRef.selectionStart = result.cursor;
-      textareaRef.selectionEnd = result.cursor;
-      autoGrow();
-    }
+    const det = currentMentionDetection;
+    if (!det) return;
+
+    const span = document.createElement("span");
+    span.contentEditable = "false";
+    span.dataset.pubkey = candidate.pubkey;
+    span.textContent = "@" + (candidate.displayName || candidate.name || npubShort(candidate.pubkey));
+    span.className = "wisp-mention";
+
+    replaceRange(det.node, det.start, det.end, [span]);
+
+    currentMentionDetection = null;
+    setMentionCandidates([]);
+    setPopupPos(null);
+    syncContent();
+    editorRef.focus();
+  }
+
+  // Insert emoji img
+  function handleSelectEmoji(candidate) {
+    const det = currentEmojiDetection;
+    if (!det) return;
+
+    const img = document.createElement("img");
+    img.src = candidate.url;
+    img.alt = ":" + candidate.shortcode + ":";
+    img.dataset.shortcode = candidate.shortcode;
+    img.className = "wisp-emoji";
+
+    replaceRange(det.node, det.start, det.end, [img]);
+
+    currentEmojiDetection = null;
+    setEmojiCandidates([]);
+    setPopupPos(null);
+    syncContent();
+    editorRef.focus();
+  }
+
+  // Strip HTML on paste
+  function handlePaste(e) {
+    e.preventDefault();
+    const text = e.clipboardData.getData("text/plain");
+    document.execCommand("insertText", false, text);
   }
 
   // File upload trigger
@@ -157,7 +333,7 @@ export function Composer() {
   function handleFileChange(e) {
     if (e.target.files.length > 0) {
       uploadFiles(e.target.files);
-      e.target.value = ""; // reset so same file can be re-selected
+      e.target.value = "";
     }
   }
 
@@ -165,27 +341,23 @@ export function Composer() {
   createEffect(() => {
     if (composerOpen()) {
       const handler = (e) => {
-        if (e.key === "Escape") {
-          closeComposer();
-        }
+        if (e.key === "Escape") closeComposer();
       };
       document.addEventListener("keydown", handler);
       onCleanup(() => document.removeEventListener("keydown", handler));
     }
   });
 
-  // Focus textarea when opened
+  // Focus editor when opened
   createEffect(() => {
-    if (composerOpen() && textareaRef) {
-      setTimeout(() => textareaRef.focus(), 50);
+    if (composerOpen() && editorRef) {
+      setTimeout(() => editorRef.focus(), 50);
     }
   });
 
   // Click outside overlay to close
   function handleOverlayClick(e) {
-    if (e.target === e.currentTarget) {
-      closeComposer();
-    }
+    if (e.target === e.currentTarget) closeComposer();
   }
 
   const canPublish = () => {
@@ -203,9 +375,32 @@ export function Composer() {
 
   return (
     <Show when={composerOpen()}>
-      <style>{`textarea:focus-visible, input:focus-visible { outline: 2px solid var(--w-accent) !important; outline-offset: -1px; }`}</style>
+      <style>{`
+        input:focus-visible { outline: 2px solid var(--w-accent) !important; outline-offset: -1px; }
+        .wisp-editor:empty::before {
+          content: "What's on your mind?";
+          color: var(--w-text-muted);
+          pointer-events: none;
+        }
+        .wisp-editor:focus { outline: none; }
+        .wisp-editor .wisp-mention {
+          color: var(--w-accent);
+          background: var(--w-accent-subtle);
+          padding: 1px 4px;
+          border-radius: 4px;
+          font-size: 14px;
+          user-select: none;
+        }
+        .wisp-editor .wisp-emoji {
+          width: 20px;
+          height: 20px;
+          vertical-align: middle;
+          display: inline;
+          margin: 0 1px;
+        }
+      `}</style>
       <div style={styles.overlay} onClick={handleOverlayClick}>
-        <div style={styles.modal} role="dialog" aria-modal="true" aria-labelledby="composer-title">
+        <div ref={modalRef} style={styles.modal} role="dialog" aria-modal="true" aria-labelledby="composer-title">
           {/* Header */}
           <div style={styles.header}>
             <h3 id="composer-title" style={styles.title}>New Note</h3>
@@ -216,25 +411,41 @@ export function Composer() {
 
           {/* Body */}
           <div style={styles.body}>
-            <textarea
-              ref={textareaRef}
-              value={content()}
+            <div
+              ref={editorRef}
+              contentEditable={true}
+              class="wisp-editor"
               onInput={handleInput}
-              onClick={handleCursorChange}
-              onKeyUp={handleCursorChange}
-              placeholder="What's on your mind?"
+              onKeyUp={handleKeyUp}
+              onClick={handleClick}
+              onPaste={handlePaste}
+              role="textbox"
               aria-label="Compose your note"
-              style={styles.textarea}
-              rows={3}
+              aria-multiline="true"
+              style={styles.editor}
             />
 
-            {/* Mention popup */}
-            <div style={{ position: "relative" }}>
-              <MentionPopup
-                candidates={mentionCandidates}
-                onSelect={handleSelectMention}
-              />
-            </div>
+            {/* Mention & emoji popups — positioned at cursor via portal */}
+            <Show when={popupPos()}>
+              <Portal>
+                <div onMouseDown={(e) => e.preventDefault()} style={{
+                  position: "fixed",
+                  top: popupPos().top + "px",
+                  left: Math.max(8, Math.min(popupPos().left, window.innerWidth - 320)) + "px",
+                  width: "300px",
+                  "z-index": 200,
+                }}>
+                  <MentionPopup
+                    candidates={mentionCandidates}
+                    onSelect={handleSelectMention}
+                  />
+                  <EmojiPopup
+                    candidates={emojiCandidates}
+                    onSelect={handleSelectEmoji}
+                  />
+                </div>
+              </Portal>
+            </Show>
 
             {/* Gallery media grid */}
             <Show when={galleryMode()}>
@@ -380,7 +591,7 @@ export function Composer() {
               />
               <ToggleBtn
                 icon={ShieldIcon}
-                onClick={() => {}} // PoW is toggled in settings, just shows state here
+                onClick={() => {}}
                 active={false}
                 title="Proof of Work (configure in Settings)"
               />
@@ -492,19 +703,20 @@ const styles = {
     flex: 1,
     "overflow-y": "auto",
   },
-  textarea: {
+  editor: {
     width: "100%",
     border: "none",
     background: "transparent",
     color: "var(--w-text-secondary)",
     "font-size": "15px",
     "line-height": "1.5",
-    resize: "none",
     outline: "none",
     "font-family": "inherit",
     padding: 0,
-    "min-height": "80px",
-    "box-sizing": "border-box",
+    "min-height": "140px",
+    "white-space": "pre-wrap",
+    "word-break": "break-word",
+    "overflow-wrap": "break-word",
   },
   // Media section
   mediaSection: {

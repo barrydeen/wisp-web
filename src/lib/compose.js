@@ -1,6 +1,6 @@
 import { createSignal } from "solid-js";
 import { nip19 } from "nostr-tools";
-import { searchContacts } from "./contacts";
+import { buildEmojiTagsFromContent } from "./emojis";
 import { uploadMedia } from "./blossom";
 import { buildPictureTags, buildVideoTags, detectMediaKind, mimeFromUrl } from "./nip68";
 import { buildPollTags } from "./nip88";
@@ -14,7 +14,6 @@ import { startMining, cancelMining, getMiningStatus } from "./pow";
 
 const [composerOpen, setComposerOpen] = createSignal(false);
 const [content, setContent] = createSignal("");
-const [cursorPosition, setCursorPosition] = createSignal(0);
 const [publishing, setPublishing] = createSignal(false);
 const [error, setError] = createSignal(null);
 
@@ -23,10 +22,11 @@ const [uploadedMedia, setUploadedMedia] = createSignal([]);
 // Each: { url, mimeType, width, height }
 const [uploadProgress, setUploadProgress] = createSignal(null);
 
-// Mentions
-const [mentionQuery, setMentionQuery] = createSignal(null);
+// Mentions (set by Composer component)
 const [mentionCandidates, setMentionCandidates] = createSignal([]);
-let mentionStartIndex = null;
+
+// Emojis (set by Composer component)
+const [emojiCandidates, setEmojiCandidates] = createSignal([]);
 
 // Hashtags
 const [hashtags, setHashtags] = createSignal([]);
@@ -48,12 +48,15 @@ let onCountdownComplete = null;
 export {
   composerOpen,
   content,
+  setContent,
   publishing,
   error,
   uploadedMedia,
   uploadProgress,
-  mentionQuery,
   mentionCandidates,
+  setMentionCandidates,
+  emojiCandidates,
+  setEmojiCandidates,
   hashtags,
   explicit,
   galleryMode,
@@ -83,14 +86,12 @@ export function closeComposer() {
 
 export function clearComposer() {
   setContent("");
-  setCursorPosition(0);
   setPublishing(false);
   setError(null);
   setUploadedMedia([]);
   setUploadProgress(null);
-  setMentionQuery(null);
   setMentionCandidates([]);
-  mentionStartIndex = null;
+  setEmojiCandidates([]);
   setHashtags([]);
   setExplicit(false);
   setGalleryMode(false);
@@ -105,12 +106,10 @@ export function clearComposer() {
   onCountdownComplete = null;
 }
 
-// --- Content update + mention/hashtag detection ---
+// --- Content update + hashtag detection ---
 
-export function updateContent(text, cursorPos) {
+export function updateContent(text) {
   setContent(text);
-  setCursorPosition(cursorPos);
-  detectMentionQuery(text, cursorPos);
   detectHashtags(text);
 }
 
@@ -127,64 +126,6 @@ function detectHashtags(text) {
     }
   }
   setHashtags(matches);
-}
-
-function detectMentionQuery(text, cursorPos) {
-  if (cursorPos === 0 || !text) {
-    setMentionQuery(null);
-    setMentionCandidates([]);
-    mentionStartIndex = null;
-    return;
-  }
-
-  // Walk backwards from cursor to find @
-  for (let i = cursorPos - 1; i >= 0; i--) {
-    const c = text[i];
-    if (c === "@") {
-      // Valid if at start or preceded by whitespace
-      if (i === 0 || /\s/.test(text[i - 1])) {
-        const query = text.substring(i + 1, cursorPos);
-        mentionStartIndex = i;
-        setMentionQuery(query);
-        const candidates = searchContacts(query);
-        setMentionCandidates(candidates);
-        return;
-      }
-      break;
-    }
-    if (/\s/.test(c)) break;
-  }
-
-  setMentionQuery(null);
-  setMentionCandidates([]);
-  mentionStartIndex = null;
-}
-
-export function selectMention(candidate) {
-  if (mentionStartIndex === null) return;
-
-  const text = content();
-  const cursor = cursorPosition();
-  const nprofile = nip19.nprofileEncode({ pubkey: candidate.pubkey });
-  const inserted = "nostr:" + nprofile;
-  const before = text.substring(0, mentionStartIndex);
-  const after = cursor < text.length ? text.substring(cursor) : "";
-  const newText = before + inserted + " " + after;
-  const newCursor = before.length + inserted.length + 1;
-
-  setContent(newText);
-  setCursorPosition(newCursor);
-  setMentionQuery(null);
-  setMentionCandidates([]);
-  mentionStartIndex = null;
-
-  return { text: newText, cursor: newCursor };
-}
-
-export function dismissMentions() {
-  setMentionQuery(null);
-  setMentionCandidates([]);
-  mentionStartIndex = null;
 }
 
 // --- Toggles ---
@@ -386,6 +327,9 @@ async function executePublish() {
     for (const ht of hashtags()) {
       tags.push(["t", ht]);
     }
+
+    // Custom emoji tags (NIP-30)
+    tags.push(...buildEmojiTagsFromContent(text));
 
     // Determine kind and add type-specific tags
     let kind = 1;
