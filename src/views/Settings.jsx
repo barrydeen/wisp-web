@@ -12,6 +12,7 @@ import {
 } from "../lib/settings";
 import { publishBlossomServerList } from "../lib/blossom";
 import { getLoginState } from "../lib/identity";
+import { getUserEmojis, getEmojiPacks } from "../lib/emojis";
 import {
   getRelayList, getDmRelayList, getSearchRelay, getMajorRelays,
   isRelayListLoaded,
@@ -483,6 +484,121 @@ function ClientTagSection() {
   );
 }
 
+function EmojiPacksSection() {
+  const packs = createMemo(() => getEmojiPacks());
+  const looseEmojis = createMemo(() => {
+    // Emojis from the kind 10030 event directly (not from packs)
+    const packShortcodes = new Set();
+    for (const pack of packs()) {
+      for (const e of pack.emojis) packShortcodes.add(e.shortcode);
+    }
+    return getUserEmojis().filter((e) => !packShortcodes.has(e.shortcode));
+  });
+
+  return (
+    <div style={styles.section}>
+      <h3 style={styles.sectionTitle}>Emoji Packs</h3>
+      <p style={styles.relayDescription}>
+        Custom emojis from your emoji list (kind 10030). Type <code style={{ color: "var(--w-text-secondary)" }}>:</code> in any composer to search and insert.
+      </p>
+
+      <Show when={looseEmojis().length > 0}>
+        <div style={emojiStyles.packCard}>
+          <div style={emojiStyles.packHeader}>
+            <span style={emojiStyles.packName}>Standalone Emojis</span>
+            <span style={emojiStyles.packCount}>{looseEmojis().length}</span>
+          </div>
+          <div style={emojiStyles.emojiGrid}>
+            <For each={looseEmojis()}>
+              {(e) => (
+                <div style={emojiStyles.emojiItem} title={`:${e.shortcode}:`}>
+                  <img src={e.url} alt={`:${e.shortcode}:`} style={emojiStyles.emojiImg} loading="lazy" />
+                  <span style={emojiStyles.emojiLabel}>{e.shortcode}</span>
+                </div>
+              )}
+            </For>
+          </div>
+        </div>
+      </Show>
+
+      <For each={packs()}>
+        {(pack) => (
+          <div style={emojiStyles.packCard}>
+            <div style={emojiStyles.packHeader}>
+              <span style={emojiStyles.packName}>{pack.name}</span>
+              <span style={emojiStyles.packCount}>{pack.emojis.length} emojis</span>
+            </div>
+            <div style={emojiStyles.emojiGrid}>
+              <For each={pack.emojis}>
+                {(e) => (
+                  <div style={emojiStyles.emojiItem} title={`:${e.shortcode}:`}>
+                    <img src={e.url} alt={`:${e.shortcode}:`} style={emojiStyles.emojiImg} loading="lazy" />
+                    <span style={emojiStyles.emojiLabel}>{e.shortcode}</span>
+                  </div>
+                )}
+              </For>
+            </div>
+          </div>
+        )}
+      </For>
+
+      <Show when={packs().length === 0 && looseEmojis().length === 0}>
+        <p style={styles.emptyText}>No custom emojis found. Add emoji packs to your emoji list (kind 10030) from another client.</p>
+      </Show>
+    </div>
+  );
+}
+
+const emojiStyles = {
+  packCard: {
+    "border-radius": "8px",
+    border: "1px solid var(--w-border-input)",
+    padding: "12px",
+    "margin-bottom": "12px",
+  },
+  packHeader: {
+    display: "flex",
+    "align-items": "center",
+    "justify-content": "space-between",
+    "margin-bottom": "10px",
+  },
+  packName: {
+    "font-size": "14px",
+    "font-weight": 600,
+    color: "var(--w-text-secondary)",
+  },
+  packCount: {
+    "font-size": "12px",
+    color: "var(--w-text-muted)",
+  },
+  emojiGrid: {
+    display: "flex",
+    "flex-wrap": "wrap",
+    gap: "8px",
+  },
+  emojiItem: {
+    display: "flex",
+    "flex-direction": "column",
+    "align-items": "center",
+    gap: "4px",
+    width: "56px",
+  },
+  emojiImg: {
+    width: "32px",
+    height: "32px",
+    "object-fit": "contain",
+  },
+  emojiLabel: {
+    "font-size": "10px",
+    color: "var(--w-text-muted)",
+    "text-align": "center",
+    overflow: "hidden",
+    "text-overflow": "ellipsis",
+    "white-space": "nowrap",
+    "max-width": "56px",
+  },
+};
+
 // --- Main component ---
 
 export default function Settings() {
@@ -545,6 +661,7 @@ export default function Settings() {
           <SearchRelaySection />
           <MajorRelaysSection />
           <BlossomServersSection />
+          <EmojiPacksSection />
           <PowSettingsSection />
           <ClientTagSection />
         </Show>

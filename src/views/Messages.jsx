@@ -12,6 +12,9 @@ import {
   getRelayConfig,
   sendDM,
 } from "../lib/dms";
+import { EmojiPopup } from "../components/EmojiPopup";
+import { RichContent } from "../components/RichContent";
+import { searchEmojis } from "../lib/emojis";
 
 export default function Messages() {
   const params = useParams();
@@ -128,6 +131,58 @@ function ConversationView(props) {
   // Send form state
   const [draft, setDraft] = createSignal("");
   const [sending, setSending] = createSignal(false);
+  const [emojiCandidates, setEmojiCandidates] = createSignal([]);
+  let emojiStartIndex = null;
+  let textareaRef;
+
+  function detectEmojiQuery(text, cursorPos) {
+    if (cursorPos === 0 || !text) {
+      setEmojiCandidates([]);
+      emojiStartIndex = null;
+      return;
+    }
+    for (let i = cursorPos - 1; i >= 0; i--) {
+      const c = text[i];
+      if (c === ":") {
+        if (i === 0 || /\s/.test(text[i - 1])) {
+          const between = text.substring(i + 1, cursorPos);
+          if (between.includes(":")) break;
+          if (between.length < 2) { setEmojiCandidates([]); emojiStartIndex = null; return; }
+          emojiStartIndex = i;
+          setEmojiCandidates(searchEmojis(between));
+          return;
+        }
+        break;
+      }
+      if (!/[a-zA-Z0-9_-]/.test(c)) break;
+    }
+    setEmojiCandidates([]);
+    emojiStartIndex = null;
+  }
+
+  function handleInputWithEmoji(e) {
+    setDraft(e.target.value);
+    detectEmojiQuery(e.target.value, e.target.selectionStart);
+  }
+
+  function handleSelectEmoji(candidate) {
+    if (emojiStartIndex === null) return;
+    const text = draft();
+    const cursor = textareaRef?.selectionStart || text.length;
+    const inserted = ":" + candidate.shortcode + ":";
+    const before = text.substring(0, emojiStartIndex);
+    const after = cursor < text.length ? text.substring(cursor) : "";
+    const newText = before + inserted + " " + after;
+    const newCursor = before.length + inserted.length + 1;
+    setDraft(newText);
+    setEmojiCandidates([]);
+    emojiStartIndex = null;
+    if (textareaRef) {
+      textareaRef.value = newText;
+      textareaRef.selectionStart = newCursor;
+      textareaRef.selectionEnd = newCursor;
+    }
+  }
 
   async function handleSend(e) {
     e.preventDefault();
@@ -179,15 +234,19 @@ function ConversationView(props) {
       {/* Send form */}
       <Show when={loggedIn()}>
         <form onSubmit={handleSend} style={styles.sendForm}>
-          <textarea
-            value={draft()}
-            onInput={(e) => setDraft(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Write a message..."
-            aria-label="Type a message"
-            style={styles.sendInput}
-            rows="1"
-          />
+          <div style={{ flex: 1, position: "relative" }}>
+            <textarea
+              ref={textareaRef}
+              value={draft()}
+              onInput={handleInputWithEmoji}
+              onKeyDown={handleKeyDown}
+              placeholder="Write a message..."
+              aria-label="Type a message"
+              style={styles.sendInput}
+              rows="1"
+            />
+            <EmojiPopup candidates={emojiCandidates} onSelect={handleSelectEmoji} />
+          </div>
           <button
             type="submit"
             disabled={sending() || !draft().trim()}
@@ -236,7 +295,9 @@ function MessageBubble(props) {
 
   return (
     <div style={{ ...styles.bubble, ...(isMine() ? styles.bubbleMine : styles.bubbleTheirs) }}>
-      <div style={styles.bubbleContent}>{props.msg.content}</div>
+      <div style={styles.bubbleContent}>
+        <RichContent content={props.msg.content} tags={props.msg.tags || []} />
+      </div>
       <div style={styles.bubbleTime}>{formatTime(props.msg.created_at)}</div>
     </div>
   );

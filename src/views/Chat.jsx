@@ -3,6 +3,7 @@ import { useParams } from "@solidjs/router";
 import { createSubscription } from "../lib/pool";
 import { getProfile } from "../lib/profiles";
 import { formatTime, npubShort, avatarColor } from "../lib/utils";
+import { RichContent } from "../components/RichContent";
 
 export default function Chat() {
   const params = useParams();
@@ -92,7 +93,9 @@ function ChatMessage(props) {
       <div>
         <span style={styles.msgAuthor}>{name()}</span>
         <span style={styles.msgTime}>{formatTime(props.msg.created_at)}</span>
-        <div style={styles.msgContent}>{props.msg.content}</div>
+        <div style={styles.msgContent}>
+          <RichContent content={props.msg.content} tags={props.msg.tags || []} />
+        </div>
       </div>
     </div>
   );

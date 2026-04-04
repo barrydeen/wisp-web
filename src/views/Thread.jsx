@@ -6,7 +6,9 @@ import { INDEXER_RELAYS, getPubkey, getLoginState } from "../lib/identity";
 import { getOutboxRelays, dedupeRelays } from "../lib/relays";
 import { uploadMedia } from "../lib/blossom";
 import { NoteCard } from "../components/NoteCard";
+import { EmojiPopup } from "../components/EmojiPopup";
 import { fetchInboxRelays, buildThreadTree } from "../lib/thread";
+import { searchEmojis, buildEmojiTagsFromContent } from "../lib/emojis";
 
 const BackIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -57,6 +59,8 @@ function ReplyCompose(props) {
   const [mediaUploads, setMediaUploads] = createSignal([]);
   const [uploadProgress, setUploadProgress] = createSignal(null);
   const [error, setError] = createSignal(null);
+  const [emojiCandidates, setEmojiCandidates] = createSignal([]);
+  let emojiStartIndex = null;
 
   function autoGrow() {
     if (textareaRef) {
@@ -71,6 +75,52 @@ function ReplyCompose(props) {
   function handleInput(e) {
     setDraft(e.target.value);
     autoGrow();
+    detectEmojiQuery(e.target.value, e.target.selectionStart);
+  }
+
+  function detectEmojiQuery(text, cursorPos) {
+    if (cursorPos === 0 || !text) {
+      setEmojiCandidates([]);
+      emojiStartIndex = null;
+      return;
+    }
+    for (let i = cursorPos - 1; i >= 0; i--) {
+      const c = text[i];
+      if (c === ":") {
+        if (i === 0 || /\s/.test(text[i - 1])) {
+          const between = text.substring(i + 1, cursorPos);
+          if (between.includes(":")) break;
+          if (between.length < 2) { setEmojiCandidates([]); emojiStartIndex = null; return; }
+          emojiStartIndex = i;
+          setEmojiCandidates(searchEmojis(between));
+          return;
+        }
+        break;
+      }
+      if (!/[a-zA-Z0-9_-]/.test(c)) break;
+    }
+    setEmojiCandidates([]);
+    emojiStartIndex = null;
+  }
+
+  function handleSelectEmoji(candidate) {
+    if (emojiStartIndex === null) return;
+    const text = draft();
+    const cursor = textareaRef?.selectionStart || text.length;
+    const inserted = ":" + candidate.shortcode + ":";
+    const before = text.substring(0, emojiStartIndex);
+    const after = cursor < text.length ? text.substring(cursor) : "";
+    const newText = before + inserted + " " + after;
+    const newCursor = before.length + inserted.length + 1;
+    setDraft(newText);
+    setEmojiCandidates([]);
+    emojiStartIndex = null;
+    if (textareaRef) {
+      textareaRef.value = newText;
+      textareaRef.selectionStart = newCursor;
+      textareaRef.selectionEnd = newCursor;
+      autoGrow();
+    }
   }
 
   function handleKeyDown(e) {
@@ -150,6 +200,9 @@ function ReplyCompose(props) {
         tags.push(parts);
       }
 
+      // Custom emoji tags (NIP-30)
+      tags.push(...buildEmojiTagsFromContent(finalContent));
+
       const eventTemplate = {
         kind: 1,
         created_at: Math.floor(Date.now() / 1000),
@@ -192,6 +245,11 @@ function ReplyCompose(props) {
         style={replyStyles.textarea}
         rows={2}
       />
+
+      {/* Emoji popup */}
+      <div style={{ position: "relative" }}>
+        <EmojiPopup candidates={emojiCandidates} onSelect={handleSelectEmoji} />
+      </div>
 
       {/* Media previews */}
       <Show when={mediaUploads().length > 0}>
