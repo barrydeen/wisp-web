@@ -72,7 +72,12 @@ export function getZapSats(eventId) {
 
 export function hasUserReacted(eventId) {
   engagementVersion();
-  return userReacted.get(eventId) || false;
+  return !!userReacted.get(eventId);
+}
+
+export function getUserReaction(eventId) {
+  engagementVersion();
+  return userReacted.get(eventId) || null;
 }
 
 export function hasUserReposted(eventId) {
@@ -110,7 +115,13 @@ function processEngagementEvent(event) {
     if (!target || !engagedEventIds.has(target)) return;
     countedReactionIds.add(event.id);
     reactionCounts.set(target, (reactionCounts.get(target) || 0) + 1);
-    if (myPubkey && event.pubkey === myPubkey) userReacted.set(target, true);
+    if (myPubkey && event.pubkey === myPubkey) {
+      const emojiTag = event.tags.find((t) => t[0] === "emoji" && t[1] && t[2]);
+      userReacted.set(target, {
+        content: event.content,
+        url: emojiTag ? emojiTag[2] : null,
+      });
+    }
     markDirty();
   } else if (event.kind === 9735) {
     // Zap receipt
@@ -147,7 +158,7 @@ function parseReadRelays(event) {
   return relays;
 }
 
-async function resolveInboxRelays(pubkeys) {
+export async function resolveInboxRelays(pubkeys) {
   const result = new Map();
   const uncached = [];
 
@@ -230,6 +241,20 @@ export async function subscribeEngagement(events) {
     });
     activeSubClosers.push(sub);
   }
+}
+
+// --- Optimistic updates ---
+
+export function optimisticReaction(eventId, content, url) {
+  reactionCounts.set(eventId, (reactionCounts.get(eventId) || 0) + 1);
+  userReacted.set(eventId, { content, url: url || null });
+  markDirty();
+}
+
+export function optimisticRepost(eventId) {
+  repostCounts.set(eventId, (repostCounts.get(eventId) || 0) + 1);
+  userReposted.set(eventId, true);
+  markDirty();
 }
 
 // --- Cleanup ---

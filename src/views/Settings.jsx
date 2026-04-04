@@ -9,6 +9,8 @@ import {
   getPowEnabled, setPowEnabled,
   getPowDifficulty, setPowDifficulty,
   getIncludeClientTag, setIncludeClientTag,
+  getQuickReactions, addQuickReaction, removeQuickReaction, resetQuickReactions,
+  DEFAULT_QUICK_REACTIONS,
 } from "../lib/settings";
 import { publishBlossomServerList } from "../lib/blossom";
 import { getLoginState } from "../lib/identity";
@@ -484,6 +486,158 @@ function ClientTagSection() {
   );
 }
 
+function QuickReactionsSection() {
+  const reactions = createMemo(() => getQuickReactions());
+  const customEmojis = createMemo(() => getUserEmojis());
+
+  const COMMON_EMOJIS = ["❤️", "👍", "👎", "😂", "🔥", "🙏", "😍", "😢", "🤔", "💯", "🎉", "❤️‍🔥", "💀", "👀", "🫡"];
+
+  // Filter out emojis already in quick reactions
+  const availableCommon = createMemo(() => {
+    const current = new Set(reactions().filter((e) => typeof e === "string"));
+    return COMMON_EMOJIS.filter((e) => !current.has(e));
+  });
+
+  const availableCustom = createMemo(() => {
+    const currentShortcodes = new Set(
+      reactions().filter((e) => typeof e !== "string").map((e) => e.shortcode),
+    );
+    return customEmojis().filter((e) => !currentShortcodes.has(e.shortcode));
+  });
+
+  return (
+    <div style={styles.section}>
+      <h3 style={styles.sectionTitle}>Quick Reactions</h3>
+      <p style={styles.relayDescription}>
+        Choose emojis for your quick reaction menu. Click the heart on any note to react.
+      </p>
+
+      {/* Current quick reactions */}
+      <div style={qrStyles.currentRow}>
+        <For each={reactions()}>
+          {(emoji, index) => (
+            <div style={qrStyles.reactionChip}>
+              {typeof emoji === "string" ? (
+                <span style={qrStyles.chipEmoji}>{emoji}</span>
+              ) : (
+                <img src={emoji.url} alt={`:${emoji.shortcode}:`} style={qrStyles.chipImg} />
+              )}
+              <button style={qrStyles.removeBtn} onClick={() => removeQuickReaction(index())}>×</button>
+            </div>
+          )}
+        </For>
+      </div>
+
+      {/* Add default emojis */}
+      <Show when={availableCommon().length > 0}>
+        <p style={qrStyles.subLabel}>Add emoji</p>
+        <div style={qrStyles.addRow}>
+          <For each={availableCommon()}>
+            {(emoji) => (
+              <button style={qrStyles.addBtn} onClick={() => addQuickReaction(emoji)}>
+                {emoji}
+              </button>
+            )}
+          </For>
+        </div>
+      </Show>
+
+      {/* Add custom emojis */}
+      <Show when={availableCustom().length > 0}>
+        <p style={qrStyles.subLabel}>Add from emoji packs</p>
+        <div style={qrStyles.addRow}>
+          <For each={availableCustom().slice(0, 30)}>
+            {(emoji) => (
+              <button
+                style={qrStyles.addBtn}
+                onClick={() => addQuickReaction({ shortcode: emoji.shortcode, url: emoji.url })}
+                title={`:${emoji.shortcode}:`}
+              >
+                <img src={emoji.url} alt={`:${emoji.shortcode}:`} style={qrStyles.chipImg} />
+              </button>
+            )}
+          </For>
+        </div>
+      </Show>
+
+      {/* Reset */}
+      <button style={qrStyles.resetBtn} onClick={resetQuickReactions}>
+        Reset to defaults
+      </button>
+    </div>
+  );
+}
+
+const qrStyles = {
+  currentRow: {
+    display: "flex",
+    "flex-wrap": "wrap",
+    gap: "8px",
+    "margin-bottom": "12px",
+  },
+  reactionChip: {
+    display: "flex",
+    "align-items": "center",
+    gap: "4px",
+    padding: "6px 8px",
+    "border-radius": "8px",
+    border: "1px solid var(--w-border-input)",
+    background: "var(--w-bg-tertiary)",
+  },
+  chipEmoji: {
+    "font-size": "20px",
+    "line-height": 1,
+  },
+  chipImg: {
+    width: "24px",
+    height: "24px",
+    "object-fit": "contain",
+  },
+  removeBtn: {
+    background: "none",
+    border: "none",
+    color: "var(--w-text-muted)",
+    cursor: "pointer",
+    "font-size": "16px",
+    padding: "0 2px",
+    "line-height": 1,
+  },
+  subLabel: {
+    "font-size": "12px",
+    color: "var(--w-text-muted)",
+    "margin-bottom": "6px",
+  },
+  addRow: {
+    display: "flex",
+    "flex-wrap": "wrap",
+    gap: "4px",
+    "margin-bottom": "12px",
+  },
+  addBtn: {
+    background: "none",
+    border: "1px solid var(--w-border-subtle)",
+    cursor: "pointer",
+    padding: "6px",
+    "border-radius": "8px",
+    "font-size": "18px",
+    "line-height": 1,
+    display: "flex",
+    "align-items": "center",
+    "justify-content": "center",
+    transition: "background 0.1s",
+  },
+  resetBtn: {
+    background: "none",
+    border: "1px solid var(--w-border-input)",
+    color: "var(--w-text-muted)",
+    cursor: "pointer",
+    padding: "6px 12px",
+    "border-radius": "6px",
+    "font-size": "12px",
+    transition: "background 0.1s, color 0.1s",
+  },
+};
+
 function EmojiPacksSection() {
   const packs = createMemo(() => getEmojiPacks());
   const looseEmojis = createMemo(() => {
@@ -661,6 +815,7 @@ export default function Settings() {
           <SearchRelaySection />
           <MajorRelaysSection />
           <BlossomServersSection />
+          <QuickReactionsSection />
           <EmojiPacksSection />
           <PowSettingsSection />
           <ClientTagSection />
