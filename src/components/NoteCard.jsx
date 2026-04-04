@@ -7,7 +7,9 @@ import { RichContent } from "./RichContent";
 import { ZapDialog } from "./ZapDialog";
 import { getLoginState } from "../lib/identity";
 import { isZapping } from "../lib/zap";
-import { getReplyCount, getRepostCount, getReactionCount, getZapSats, hasUserReacted, hasUserReposted } from "../lib/engagement";
+import { getReplyCount, getRepostCount, getReactionCount, getZapSats, hasUserReacted, hasUserReposted, getUserReaction } from "../lib/engagement";
+import { sendReaction, sendRepost } from "../lib/reactions";
+import { ReactionPicker } from "./ReactionPicker";
 
 // --- SVG Icon factories (must return fresh DOM nodes per instance) ---
 
@@ -61,7 +63,7 @@ function ActionButton(props) {
       onMouseLeave={() => setHovered(false)}
       onClick={(e) => { e.stopPropagation(); props.onClick?.(e); }}
     >
-      {props.icon()}
+      {props.children || props.icon()}
       <span style={styles.actionCount}>{props.count || ""}</span>
     </button>
   );
@@ -160,6 +162,26 @@ export function NoteCard(props) {
   function handleZapClick() {
     if (getLoginState() !== "logged-in") return;
     setShowZap(true);
+  }
+
+  // Reaction picker
+  const [showReactionPicker, setShowReactionPicker] = createSignal(false);
+
+  function handleReactClick() {
+    if (getLoginState() !== "logged-in") return;
+    if (hasUserReacted(props.note.id)) return;
+    setShowReactionPicker((prev) => !prev);
+  }
+
+  function handleReactionSelect(emoji, emojiUrl) {
+    setShowReactionPicker(false);
+    sendReaction(props.note, emoji, emojiUrl);
+  }
+
+  function handleRepostClick() {
+    if (getLoginState() !== "logged-in") return;
+    if (hasUserReposted(props.note.id)) return;
+    sendRepost(props.note);
   }
 
   // Engagement counts
@@ -293,8 +315,23 @@ export function NoteCard(props) {
         <Show when={!props.compact}>
           <div style={styles.actionBar}>
             <ActionButton icon={ReplyIcon} count={replyCount()} hoverColor="var(--w-action-reply)" />
-            <ActionButton icon={RepostIcon} count={repostCount()} hoverColor="var(--w-action-repost)" active={hasUserReposted(props.note.id)} />
-            <ActionButton icon={LikeIcon} count={reactionCount()} hoverColor="var(--w-action-like)" active={hasUserReacted(props.note.id)} />
+            <ActionButton icon={RepostIcon} count={repostCount()} hoverColor="var(--w-action-repost)" active={hasUserReposted(props.note.id)} onClick={handleRepostClick} />
+            <div style={{ position: "relative" }}>
+              <ActionButton icon={LikeIcon} count={reactionCount()} hoverColor="var(--w-action-like)" active={hasUserReacted(props.note.id)} onClick={handleReactClick}>
+                <Show when={getUserReaction(props.note.id)} fallback={<LikeIcon />}>
+                  {(reaction) => (
+                    reaction().url
+                      ? <img src={reaction().url} style={{ width: "18px", height: "18px", "object-fit": "contain" }} />
+                      : <span style={{ "font-size": "16px", "line-height": 1 }}>{reaction().content}</span>
+                  )}
+                </Show>
+              </ActionButton>
+              <ReactionPicker
+                isOpen={showReactionPicker()}
+                onClose={() => setShowReactionPicker(false)}
+                onSelect={handleReactionSelect}
+              />
+            </div>
             <ActionButton
               icon={ZapIcon}
               count={zapDisplay()}

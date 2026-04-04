@@ -220,6 +220,12 @@ const [blossomServers, setBlossomServersSignal] = createSignal(
 const [powEnabled, setPowEnabledSignal] = createSignal(saved.powEnabled || false);
 const [powDifficulty, setPowDifficultySignal] = createSignal(saved.powDifficulty || 16);
 
+// Quick reactions
+const DEFAULT_QUICK_REACTIONS = ["❤️", "👍", "😂", "🔥", "🙏", "😍"];
+const [quickReactions, setQuickReactionsSignal] = createSignal(
+  saved.quickReactions || [...DEFAULT_QUICK_REACTIONS]
+);
+
 // Client tag
 const CLIENT_TAG_VALUE = "Wisp Web";
 const [includeClientTag, setIncludeClientTagSignal] = createSignal(
@@ -238,6 +244,7 @@ function saveSettings() {
     powEnabled: powEnabled(),
     powDifficulty: powDifficulty(),
     includeClientTag: includeClientTag(),
+    quickReactions: quickReactions(),
   }));
 }
 
@@ -361,6 +368,33 @@ export function setIncludeClientTag(val) {
   setIncludeClientTagSignal(!!val);
   saveSettings();
 }
+
+// --- Quick reactions accessors ---
+
+export function getQuickReactions() { return quickReactions(); }
+export function setQuickReactions(list) {
+  setQuickReactionsSignal(list);
+  saveSettings();
+}
+export function addQuickReaction(emoji) {
+  setQuickReactionsSignal(prev => {
+    // Deduplicate: compare by string for plain emojis, by shortcode for custom
+    const key = typeof emoji === "string" ? emoji : emoji.shortcode;
+    const exists = prev.some(e => (typeof e === "string" ? e : e.shortcode) === key);
+    if (exists) return prev;
+    return [...prev, emoji];
+  });
+  saveSettings();
+}
+export function removeQuickReaction(index) {
+  setQuickReactionsSignal(prev => prev.filter((_, i) => i !== index));
+  saveSettings();
+}
+export function resetQuickReactions() {
+  setQuickReactionsSignal([...DEFAULT_QUICK_REACTIONS]);
+  saveSettings();
+}
+export { DEFAULT_QUICK_REACTIONS };
 
 export function withClientTag(tags) {
   if (includeClientTag()) {
