@@ -158,6 +158,10 @@ export function clearFollowFeed() {
   activeSub?.close();
   activeSub = null;
   abortController = null;
+  cachedFollows = null;
+  cachedRelayMap = null;
+  cachedForPubkey = null;
+  cacheTimestamp = 0;
   setFeedEvents([]);
   setFeedState({ phase: "idle" });
 }

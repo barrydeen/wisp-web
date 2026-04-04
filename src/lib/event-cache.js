@@ -8,9 +8,40 @@ import { getPool } from "./pool";
 
 const CACHE_TTL = 60 * 60 * 1000; // 1 hour
 const MAX_AUTHORS_PER_FILTER = 500;
+const STORAGE_KEY = "wisp:event-cache";
 
 // Map<string, { event: Event|null, fetchedAt: number }>
 const cache = new Map();
+
+// Hydrate from localStorage on module load (only real events, not misses)
+try {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (raw) {
+    const data = JSON.parse(raw);
+    const now = Date.now();
+    for (const k in data) {
+      const entry = data[k];
+      if (entry.event && now - entry.fetchedAt < CACHE_TTL) {
+        cache.set(k, entry);
+      }
+    }
+  }
+} catch { /* ignore corrupt data */ }
+
+let persistTimer = null;
+function schedulePersist() {
+  if (persistTimer !== null) return;
+  persistTimer = setTimeout(() => {
+    persistTimer = null;
+    try {
+      const data = {};
+      for (const [k, entry] of cache) {
+        if (entry.event) data[k] = entry; // only persist real events, not misses
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch { /* localStorage full */ }
+  }, 2000);
+}
 
 function key(kind, pubkey) {
   return `${kind}:${pubkey}`;
@@ -34,6 +65,7 @@ export function putCached(event) {
   const existing = cache.get(k);
   if (existing?.event && existing.event.created_at >= event.created_at) return;
   cache.set(k, { event, fetchedAt: Date.now() });
+  schedulePersist();
 }
 
 /** Record that we queried but found nothing for this (kind, pubkey). */
@@ -41,14 +73,21 @@ export function putMiss(kind, pubkey) {
   const k = key(kind, pubkey);
   if (cache.get(k)?.event) return; // don't overwrite real data
   cache.set(k, { event: null, fetchedAt: Date.now() });
+  schedulePersist();
 }
 
 export function invalidate(kind, pubkey) {
   cache.delete(key(kind, pubkey));
+  schedulePersist();
 }
 
 export function clearCache() {
   cache.clear();
+  if (persistTimer !== null) {
+    clearTimeout(persistTimer);
+    persistTimer = null;
+  }
+  try { localStorage.removeItem(STORAGE_KEY); } catch {}
 }
 
 // ---------------------------------------------------------------------------

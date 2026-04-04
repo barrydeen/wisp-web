@@ -1,7 +1,7 @@
 import { createSignal, For, Show, onCleanup, createMemo, createEffect } from "solid-js";
 import { useNavigate, useParams } from "@solidjs/router";
 import { nip19 } from "nostr-tools";
-import { createSubscription } from "../lib/pool";
+import { createSubscription, createOrderedSubscription } from "../lib/pool";
 import { getLoginState } from "../lib/identity";
 import { getFollowFeedEvents, getFollowFeedState } from "../lib/outbox";
 import { NoteCard } from "../components/NoteCard";
@@ -131,6 +131,7 @@ function FeedTypeSelector(props) {
   const options = createMemo(() => {
     const list = [];
     if (loggedIn()) list.push({ value: "following", label: "Following" });
+    list.push({ value: "trending", label: "Trending" });
     list.push({ value: "global", label: "Global" });
     list.push({ value: "relay", label: "Relay" });
     return list;
@@ -305,10 +306,13 @@ export default function Feed() {
 
   // Track if user explicitly chose relay mode without a relay selected yet
   const [relayModeActive, setRelayModeActive] = createSignal(false);
+  // Track explicit feed type override (when user picks from dropdown)
+  const [feedTypeOverride, setFeedTypeOverride] = createSignal(null);
 
   function handleFeedTypeChangeWrapped(type) {
     if (type === "relay") {
       setRelayModeActive(true);
+      setFeedTypeOverride(null);
       const relay = selectedRelay();
       if (relay) {
         navigate(`/relay/${relay.replace("wss://", "").replace("ws://", "")}`);
@@ -316,6 +320,7 @@ export default function Feed() {
     } else {
       setRelayModeActive(false);
       setSelectedRelay(null);
+      setFeedTypeOverride(type);
       navigate("/");
     }
   }
@@ -323,7 +328,9 @@ export default function Feed() {
   const effectiveFeedType = createMemo(() => {
     if (params.relayHost) return "relay";
     if (relayModeActive()) return "relay";
-    return loggedIn() ? "following" : "global";
+    const override = feedTypeOverride();
+    if (override) return override;
+    return loggedIn() ? "following" : "trending";
   });
 
   function handleRelaySelect(url) {
@@ -341,6 +348,14 @@ export default function Feed() {
     return createSubscription({ kinds: [1], limit: 50 });
   }, null);
 
+  // Trending feed — only active in trending mode
+  const trendingSub = createMemo((prev) => {
+    if (prev) prev.cleanup();
+    if (effectiveFeedType() !== "trending") return null;
+    const relay = "wss://feeds.nostrarchives.com/notes/trending/reactions/today";
+    return createOrderedSubscription({ kinds: [1], limit: 50 }, { relays: [relay], limit: 50 });
+  }, null);
+
   // Relay feed — only active in relay mode with a selected relay
   const relaySub = createMemo((prev) => {
     prev?.cleanup();
@@ -352,6 +367,7 @@ export default function Feed() {
 
   onCleanup(() => {
     globalSub()?.cleanup();
+    trendingSub()?.cleanup();
     relaySub()?.cleanup();
     clearEngagement();
   });
@@ -387,6 +403,7 @@ export default function Feed() {
   const events = createMemo(() => {
     const type = effectiveFeedType();
     if (type === "following") return getFollowFeedEvents();
+    if (type === "trending") return trendingSub()?.events() || [];
     if (type === "relay") return relaySub()?.events() || [];
     return globalSub()?.events() || [];
   });
@@ -416,6 +433,7 @@ export default function Feed() {
       if (state.followCount === 0) return "You're not following anyone yet.";
       return "No notes found.";
     }
+    if (type === "trending") return "Loading trending notes...";
     if (type === "relay") return "No notes found. The relay may be unavailable.";
     return "Connecting to relays...";
   });
