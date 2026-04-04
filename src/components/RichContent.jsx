@@ -71,7 +71,15 @@ function InlineLinkSegment(props) {
 }
 
 function HashtagSegment(props) {
-  return <span style={styles.hashtag}>#{props.tag}</span>;
+  return (
+    <A
+      href={`/hashtag/${encodeURIComponent(props.tag)}`}
+      style={styles.hashtag}
+      onClick={(e) => e.stopPropagation()}
+    >
+      #{props.tag}
+    </A>
+  );
 }
 
 function ProfileMention(props) {
@@ -324,6 +332,8 @@ const styles = {
   },
   hashtag: {
     color: "var(--w-accent)",
+    "text-decoration": "none",
+    cursor: "pointer",
   },
   mention: {
     color: "var(--w-accent)",

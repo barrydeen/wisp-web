@@ -44,7 +44,11 @@ export async function login() {
 
     // Start outbox pipeline immediately so feed data flows before user navigates
     import("./outbox").then(({ initFollowFeed }) => initFollowFeed(pk));
-    import("./relays").then(({ fetchOwnRelayLists }) => fetchOwnRelayLists(pk));
+    import("./relays").then(({ fetchOwnRelayLists }) =>
+      fetchOwnRelayLists(pk).then(() =>
+        import("./interests").then(({ fetchInterestSets }) => fetchInterestSets(pk))
+      )
+    );
     import("./wallet").then(({ initWallet }) => initWallet(pk));
     import("./notifications").then(({ initNotifications }) => initNotifications(pk));
     import("./emojis").then(({ fetchUserEmojiList }) => fetchUserEmojiList(pk));
@@ -68,13 +72,18 @@ export function logout() {
   import("./wallet").then(({ clearWallet }) => clearWallet());
   import("./notifications").then(({ clearNotifications }) => clearNotifications());
   import("./emojis").then(({ clearEmojiState }) => clearEmojiState());
+  import("./interests").then(({ clearInterestState }) => clearInterestState());
 }
 
 // Restore session on page load
 if (stored) {
   fetchUserProfile(stored);
   import("./outbox").then(({ initFollowFeed }) => initFollowFeed(stored));
-  import("./relays").then(({ fetchOwnRelayLists }) => fetchOwnRelayLists(stored));
+  import("./relays").then(({ fetchOwnRelayLists }) =>
+    fetchOwnRelayLists(stored).then(() =>
+      import("./interests").then(({ fetchInterestSets }) => fetchInterestSets(stored))
+    )
+  );
   import("./wallet").then(({ initWallet }) => initWallet(stored));
   import("./notifications").then(({ initNotifications }) => initNotifications(stored));
   import("./emojis").then(({ fetchUserEmojiList }) => fetchUserEmojiList(stored));

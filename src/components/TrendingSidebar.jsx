@@ -19,7 +19,7 @@ const TIMEFRAMES = [
 
 export function TrendingSidebar() {
   const [metric, setMetric] = createSignal("reactions");
-  const [timeframe, setTimeframe] = createSignal("today");
+  const [timeframe, setTimeframe] = createSignal("30d");
   const [loading, setLoading] = createSignal(true);
   const [notes, setNotes] = createSignal([]);
 

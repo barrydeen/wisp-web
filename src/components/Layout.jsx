@@ -27,7 +27,7 @@ export function Layout(props) {
 
   const isFeedRoute = createMemo(() => {
     const path = location.pathname;
-    return path === "/" || path.startsWith("/relay/");
+    return path === "/" || path.startsWith("/relay/") || path.startsWith("/hashtag/") || path.startsWith("/topics/set/");
   });
 
   const profilePubkey = createMemo(() => {
@@ -120,6 +120,7 @@ export function Layout(props) {
             <A href="/chat" style={styles.link} activeClass="active">chat</A>
             <A href="/streams" style={styles.link} activeClass="active">streams</A>
             <A href="/groups" style={styles.link} activeClass="active">groups</A>
+            <A href="/topics" style={styles.link} activeClass="active">topics</A>
             <div style={styles.notifLinkWrap}>
               <A href="/notifications" style={styles.link} activeClass="active">notifications</A>
               <Show when={getHasUnread()}>
