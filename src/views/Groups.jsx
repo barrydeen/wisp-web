@@ -92,15 +92,7 @@ function GroupList() {
         <div style={styles.section}>
           <h3 style={styles.sectionTitle}>Your Groups</h3>
           <For each={userGroups()}>
-            {(g) => {
-              const code = encodeGroupReference({ host: g.relay, id: g.id });
-              return (
-                <a href={`/groups/${code}`} style={styles.groupCard}>
-                  <span style={styles.groupName}>{g.id}</span>
-                  <span style={styles.groupRelay}>{g.relay}</span>
-                </a>
-              );
-            }}
+            {(g) => <UserGroupCard id={g.id} relay={g.relay} />}
           </For>
         </div>
       </Show>
@@ -147,36 +139,135 @@ function GroupList() {
   );
 }
 
+function UserGroupCard(props) {
+  const relayUrl = (() => {
+    try { return normalizeURL(props.relay); }
+    catch { return props.relay; }
+  })();
+  const code = encodeGroupReference({ host: props.relay, id: props.id });
+
+  const { events, cleanup } = createSubscription(
+    { kinds: [39000, 39001, 39002], "#d": [props.id] },
+    { relays: [relayUrl] },
+  );
+  onCleanup(cleanup);
+
+  const groupInfo = createMemo(() => parseMetadata(events()));
+  const name = createMemo(() => groupInfo().metadata?.name || props.id);
+  const about = createMemo(() => groupInfo().metadata?.about || "");
+  const picture = createMemo(() => groupInfo().metadata?.picture);
+  const memberPubkeys = createMemo(() => {
+    const seen = new Set();
+    const all = [];
+    for (const a of groupInfo().admins) {
+      if (!seen.has(a.pubkey)) { seen.add(a.pubkey); all.push(a.pubkey); }
+    }
+    for (const m of groupInfo().members) {
+      if (!seen.has(m.pubkey)) { seen.add(m.pubkey); all.push(m.pubkey); }
+    }
+    return all.slice(0, 10);
+  });
+
+  return (
+    <a href={`/groups/${code}`} style={styles.groupCard}>
+      <div style={styles.groupCardTop}>
+        <Show
+          when={picture()}
+          fallback={
+            <div style={{ ...styles.groupPicFallback, "background-color": avatarColor(props.id) }}>
+              {(name() || "?").charAt(0).toUpperCase()}
+            </div>
+          }
+        >
+          <img src={picture()} alt={name()} style={styles.groupPic} loading="lazy" />
+        </Show>
+        <div style={{ flex: 1, "min-width": 0 }}>
+          <span style={styles.groupName}>{name()}</span>
+          <span style={styles.groupRelay}>{props.relay.replace(/^wss?:\/\//, "")}</span>
+          <Show when={about()}>
+            <span style={styles.groupAbout}>{about()}</span>
+          </Show>
+        </div>
+      </div>
+      <Show when={memberPubkeys().length > 0}>
+        <MemberAvatars pubkeys={memberPubkeys()} />
+      </Show>
+    </a>
+  );
+}
+
+function MemberAvatars(props) {
+  return (
+    <div style={styles.memberAvatars}>
+      <For each={props.pubkeys}>
+        {(pubkey) => {
+          const profile = createMemo(() => getProfile(pubkey));
+          const color = createMemo(() => avatarColor(pubkey));
+          return (
+            <Show
+              when={profile()?.picture}
+              fallback={
+                <div style={{ ...styles.memberAvatarFallback, "background-color": color() }}>
+                  {pubkey.slice(0, 2).toUpperCase()}
+                </div>
+              }
+            >
+              <img src={profile().picture} alt="" style={styles.memberAvatarImg} loading="lazy" />
+            </Show>
+          );
+        }}
+      </For>
+    </div>
+  );
+}
+
 function RelayGroupBrowser(props) {
   const { events, cleanup } = createSubscription(
-    { kinds: [39000], limit: 50 },
+    { kinds: [39000, 39001, 39002], limit: 100 },
     { relays: [props.relayUrl] },
   );
   onCleanup(cleanup);
 
-  const groups = createMemo(() =>
-    events().map((e) => {
+  const groups = createMemo(() => {
+    const allEvents = events();
+    const metaEvents = allEvents.filter((e) => e.kind === 39000);
+
+    return metaEvents.map((e) => {
       const dTag = e.tags.find((t) => t[0] === "d");
-      const nameTag = e.tags.find((t) => t[0] === "name");
-      const aboutTag = e.tags.find((t) => t[0] === "about");
-      const pictureTag = e.tags.find((t) => t[0] === "picture");
+      const groupId = dTag?.[1] || "";
       const isOpen = e.tags.some((t) => t[0] === "open");
       const isPublic = e.tags.some((t) => t[0] === "public");
 
       const host = props.relayUrl.replace(/^wss?:\/\//, "");
-      const code = `${host}'${dTag?.[1] || ""}`;
+      const code = `${host}'${groupId}`;
+
+      const groupEvents = allEvents.filter((ev) => {
+        const d = ev.tags.find((t) => t[0] === "d");
+        return d?.[1] === groupId;
+      });
+      const info = parseMetadata(groupEvents);
+
+      const seen = new Set();
+      const memberPubkeys = [];
+      for (const a of info.admins) {
+        if (!seen.has(a.pubkey)) { seen.add(a.pubkey); memberPubkeys.push(a.pubkey); }
+      }
+      for (const m of info.members) {
+        if (!seen.has(m.pubkey)) { seen.add(m.pubkey); memberPubkeys.push(m.pubkey); }
+      }
 
       return {
-        id: dTag?.[1] || "",
-        name: nameTag?.[1] || dTag?.[1] || "Unnamed",
-        about: aboutTag?.[1] || "",
-        picture: pictureTag?.[1],
+        id: groupId,
+        name: info.metadata?.name || groupId || "Unnamed",
+        about: info.metadata?.about || "",
+        picture: info.metadata?.picture,
         isOpen,
         isPublic,
         code,
+        memberPubkeys: memberPubkeys.slice(0, 10),
       };
-    }),
-  );
+    });
+  });
 
   return (
     <div style={{ "margin-top": "12px" }}>
@@ -205,6 +296,9 @@ function RelayGroupBrowser(props) {
               </div>
               <Show when={g.about}>
                 <span style={styles.groupAbout}>{g.about}</span>
+              </Show>
+              <Show when={g.memberPubkeys.length > 0}>
+                <MemberAvatars pubkeys={g.memberPubkeys} />
               </Show>
             </a>
           )}
@@ -575,6 +669,18 @@ const styles = {
     "object-fit": "cover",
     "flex-shrink": 0,
   },
+  groupPicFallback: {
+    width: "36px",
+    height: "36px",
+    "border-radius": "8px",
+    display: "flex",
+    "align-items": "center",
+    "justify-content": "center",
+    "font-size": "15px",
+    "font-weight": 700,
+    color: "#fff",
+    "flex-shrink": 0,
+  },
   groupName: {
     "font-size": "15px",
     "font-weight": 600,
@@ -604,6 +710,33 @@ const styles = {
     padding: "1px 6px",
     "border-radius": "4px",
     border: "1px solid var(--w-border-subtle)",
+  },
+  memberAvatars: {
+    display: "flex",
+    "align-items": "center",
+    "margin-top": "8px",
+    "padding-left": "6px",
+  },
+  memberAvatarImg: {
+    width: "24px",
+    height: "24px",
+    "border-radius": "50%",
+    "object-fit": "cover",
+    "margin-left": "-6px",
+    border: "2px solid var(--w-bg-primary)",
+  },
+  memberAvatarFallback: {
+    width: "24px",
+    height: "24px",
+    "border-radius": "50%",
+    display: "flex",
+    "align-items": "center",
+    "justify-content": "center",
+    "font-size": "9px",
+    "font-weight": 700,
+    color: "#fff",
+    "margin-left": "-6px",
+    border: "2px solid var(--w-bg-primary)",
   },
   createForm: {
     display: "flex",

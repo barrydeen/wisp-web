@@ -1,11 +1,13 @@
-import { createSignal, createMemo, For, Show, onCleanup } from "solid-js";
+import { createSignal, createMemo, createEffect, For, Show, onCleanup } from "solid-js";
 import { useParams, A } from "@solidjs/router";
-import { createSubscription, getRelays } from "../lib/pool";
+import { createSubscription, getRelays, publishEvent } from "../lib/pool";
 import { getProfile, requestProfile } from "../lib/profiles";
 import { npubShort, avatarColor } from "../lib/utils";
 import { NoteCard } from "../components/NoteCard";
-import { INDEXER_RELAYS } from "../lib/identity";
-import { fetchCachedEvent } from "../lib/event-cache";
+import { INDEXER_RELAYS, getPubkey } from "../lib/identity";
+import { fetchCachedEvent, putCached } from "../lib/event-cache";
+import { getFollowSet, addToFollowSet, removeFromFollowSet } from "../lib/outbox";
+import { getOutboxRelays } from "../lib/relays";
 
 const TABS = ["Notes", "Replies", "Relays", "Groups", "Follows"];
 
@@ -187,6 +189,71 @@ export default function Profile() {
     return p?.display_name || p?.name || npubShort(params.pubkey);
   });
 
+  const [isFollowing, setIsFollowing] = createSignal(false);
+  const [followBusy, setFollowBusy] = createSignal(false);
+  const showFollowBtn = createMemo(() => {
+    const myPk = getPubkey();
+    return myPk && myPk !== params.pubkey;
+  });
+
+  createEffect(() => {
+    const pk = params.pubkey;
+    const myPk = getPubkey();
+    if (!myPk || pk === myPk) {
+      setIsFollowing(false);
+      return;
+    }
+    const followSet = getFollowSet();
+    if (followSet) {
+      setIsFollowing(followSet.has(pk));
+    } else {
+      fetchCachedEvent(3, myPk, [...INDEXER_RELAYS, ...getRelays()])
+        .then(event => {
+          if (event) {
+            setIsFollowing(event.tags.some(t => t[0] === "p" && t[1] === pk));
+          }
+        });
+    }
+  });
+
+  async function handleFollowToggle() {
+    const myPk = getPubkey();
+    if (!myPk || followBusy()) return;
+
+    setFollowBusy(true);
+    try {
+      const current = await fetchCachedEvent(3, myPk, [...INDEXER_RELAYS, ...getRelays()]);
+      let tags = current ? current.tags.filter(t => t[0] === "p") : [];
+
+      if (isFollowing()) {
+        tags = tags.filter(t => t[1] !== params.pubkey);
+        removeFromFollowSet(params.pubkey);
+        setIsFollowing(false);
+      } else {
+        if (!tags.some(t => t[1] === params.pubkey)) {
+          tags.push(["p", params.pubkey]);
+        }
+        addToFollowSet(params.pubkey);
+        setIsFollowing(true);
+      }
+
+      const broadcastRelays = [...new Set([...getOutboxRelays(), ...INDEXER_RELAYS])];
+      const signed = await publishEvent({
+        kind: 3,
+        created_at: Math.floor(Date.now() / 1000),
+        tags,
+        content: "",
+      }, broadcastRelays);
+      putCached(signed);
+    } catch (err) {
+      const followSet = getFollowSet();
+      setIsFollowing(followSet ? followSet.has(params.pubkey) : false);
+      console.error("Follow toggle failed:", err);
+    } finally {
+      setFollowBusy(false);
+    }
+  }
+
   const { events, cleanup } = createSubscription(
     { kinds: [1], authors: [params.pubkey], limit: 50 },
   );
@@ -212,13 +279,22 @@ export default function Profile() {
         >
           <img src={profile().picture} style={styles.avatar} alt={displayName() + "'s profile picture"} />
         </Show>
-        <div>
+        <div style={{ flex: 1, "min-width": 0 }}>
           <h2 style={styles.name}>{displayName()}</h2>
           <p style={styles.npub}>{npubShort(params.pubkey)}</p>
           <Show when={profile()?.about}>
             <p style={styles.about}>{profile().about}</p>
           </Show>
         </div>
+        <Show when={showFollowBtn()}>
+          <button
+            onClick={handleFollowToggle}
+            disabled={followBusy()}
+            style={isFollowing() ? styles.unfollowBtn : styles.followBtn}
+          >
+            {followBusy() ? "..." : isFollowing() ? "Unfollow" : "Follow"}
+          </button>
+        </Show>
       </div>
 
       <TabBar active={activeTab} onChange={setActiveTab} />
@@ -299,6 +375,28 @@ const styles = {
     color: "var(--w-text-tertiary)",
     "margin-top": "8px",
     "line-height": 1.4,
+  },
+  followBtn: {
+    padding: "6px 20px",
+    "border-radius": "20px",
+    "font-size": "13px",
+    "font-weight": 600,
+    cursor: "pointer",
+    border: "none",
+    "background-color": "var(--w-accent)",
+    color: "#fff",
+    "flex-shrink": 0,
+  },
+  unfollowBtn: {
+    padding: "6px 20px",
+    "border-radius": "20px",
+    "font-size": "13px",
+    "font-weight": 600,
+    cursor: "pointer",
+    background: "transparent",
+    border: "1px solid var(--w-border-input)",
+    color: "var(--w-text-secondary)",
+    "flex-shrink": 0,
   },
   tabBar: {
     display: "flex",
