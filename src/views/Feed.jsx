@@ -458,7 +458,9 @@ export default function Feed() {
         <span style={styles.count}>{events().length} notes</span>
       </div>
       <Show when={effectiveFeedType() !== "relay"}>
-        <LiveStreamBar />
+        <div style={styles.streamBarContainer}>
+          <LiveStreamBar />
+        </div>
       </Show>
       <Show when={showRelayPicker()}>
         <RelayPicker onSelect={handleRelaySelect} />
@@ -552,6 +554,11 @@ const pillStyles = {
     "overflow-x": "auto",
     "white-space": "nowrap",
     "flex-shrink": 0,
+    "scrollbar-width": "none",
+    "-ms-overflow-style": "none",
+    "&::-webkit-scrollbar": {
+      display: "none",
+    },
   },
   liveLabel: {
     display: "inline-block",
@@ -724,6 +731,13 @@ const styles = {
     "max-width": "650px",
     width: "100%",
     padding: "0 16px",
+  },
+  streamBarContainer: {
+    position: "relative",
+  },
+  streamBarContent: {
+    position: "relative",
+    z: "-1",
   },
   header: {
     padding: "20px 20px 16px",
