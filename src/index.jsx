@@ -20,6 +20,7 @@ const Thread = lazy(() => import("./views/Thread"));
 const Notifications = lazy(() => import("./views/Notifications"));
 const HashtagFeed = lazy(() => import("./views/HashtagFeed"));
 const Topics = lazy(() => import("./views/Topics"));
+const Safety = lazy(() => import("./views/Safety"));
 
 const routes = [
   { path: "/", component: Feed },
@@ -43,6 +44,7 @@ const routes = [
   { path: "/settings/interface", component: Interface },
   { path: "/settings/relays", component: Relays },
   { path: "/settings/emoji", component: Emoji },
+  { path: "/settings/safety", component: Safety },
   { path: "/settings/pow", component: ProofOfWork },
 ];
 
