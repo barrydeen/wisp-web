@@ -51,7 +51,8 @@ export async function login() {
     );
     import("./wallet").then(({ initWallet }) => initWallet(pk));
     import("./notifications").then(({ initNotifications }) => initNotifications(pk));
-    import("./emojis").then(({ fetchUserEmojiList }) => fetchUserEmojiList(pk));
+     import("./emojis").then(({ fetchUserEmojiList }) => fetchUserEmojiList(pk));
+     import("./blocklist").then(({ initBlocklist }) => initBlocklist());
 
     return pk;
   } catch (err) {
@@ -86,7 +87,8 @@ if (stored) {
   );
   import("./wallet").then(({ initWallet }) => initWallet(stored));
   import("./notifications").then(({ initNotifications }) => initNotifications(stored));
-  import("./emojis").then(({ fetchUserEmojiList }) => fetchUserEmojiList(stored));
+   import("./emojis").then(({ fetchUserEmojiList }) => fetchUserEmojiList(stored));
+   import("./blocklist").then(({ initBlocklist }) => initBlocklist());
 }
 
 function fetchUserProfile(pk) {

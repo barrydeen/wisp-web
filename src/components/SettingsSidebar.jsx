@@ -42,6 +42,14 @@ export function SettingsSidebar() {
           Emoji
         </A>
         <A
+          href="/settings/safety"
+          style={styles.link}
+          activeClass="active"
+          onClick={() => setExpanded(null)}
+        >
+          Safety
+        </A>
+        <A
           href="/settings/pow"
           style={styles.link}
           activeClass="active"
