@@ -11,6 +11,10 @@ const Groups = lazy(() => import("./views/Groups"));
 const Messages = lazy(() => import("./views/Messages"));
 const Streams = lazy(() => import("./views/Streams"));
 const Settings = lazy(() => import("./views/Settings"));
+const Interface = lazy(() => import("./views/Interface"));
+const Relays = lazy(() => import("./views/Relays"));
+const Emoji = lazy(() => import("./views/Emoji"));
+const ProofOfWork = lazy(() => import("./views/ProofOfWork"));
 const Wallet = lazy(() => import("./views/Wallet"));
 const Thread = lazy(() => import("./views/Thread"));
 const Notifications = lazy(() => import("./views/Notifications"));
@@ -36,6 +40,10 @@ const routes = [
   { path: "/streams/:naddr", component: Streams },
   { path: "/wallet", component: Wallet },
   { path: "/settings", component: Settings },
+  { path: "/settings/interface", component: Interface },
+  { path: "/settings/relays", component: Relays },
+  { path: "/settings/emoji", component: Emoji },
+  { path: "/settings/pow", component: ProofOfWork },
 ];
 
 render(

@@ -2,6 +2,7 @@ import { A, useLocation, useMatch } from "@solidjs/router";
 import { Show, Switch, Match, createMemo } from "solid-js";
 import { TrendingSidebar } from "./TrendingSidebar";
 import { TopNotesSidebar } from "./TopNotesSidebar";
+import { SettingsSidebar } from "./SettingsSidebar";
 import {
   getPubkey,
   getUserProfile,
@@ -25,9 +26,14 @@ export function Layout(props) {
   const location = useLocation();
   const matchProfile = useMatch(() => "/profile/:pubkey");
 
-  const isFeedRoute = createMemo(() => {
+   const isFeedRoute = createMemo(() => {
     const path = location.pathname;
     return path === "/" || path.startsWith("/relay/") || path.startsWith("/hashtag/") || path.startsWith("/topics/set/");
+  });
+
+  const isSettingsRoute = createMemo(() => {
+    const path = location.pathname;
+    return path.startsWith("/settings");
   });
 
   const profilePubkey = createMemo(() => {
@@ -206,6 +212,9 @@ export function Layout(props) {
         </main>
         <aside style={styles.rightSidebar} class="wisp-right-sidebar">
           <Switch>
+            <Match when={isSettingsRoute()}>
+              <SettingsSidebar />
+            </Match>
             <Match when={isFeedRoute()}>
               <TrendingSidebar />
             </Match>
