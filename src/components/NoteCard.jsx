@@ -314,7 +314,7 @@ export function NoteCard(props) {
         {/* Action bar */}
         <Show when={!props.compact}>
           <div style={styles.actionBar}>
-            <ActionButton icon={ReplyIcon} count={replyCount()} hoverColor="var(--w-action-reply)" />
+            <ActionButton icon={ReplyIcon} count={replyCount()} hoverColor="var(--w-action-reply)" onClick={handleCardClick} />
             <ActionButton icon={RepostIcon} count={repostCount()} hoverColor="var(--w-action-repost)" active={hasUserReposted(props.note.id)} onClick={handleRepostClick} />
             <div style={{ position: "relative" }}>
               <ActionButton icon={LikeIcon} count={reactionCount()} hoverColor="var(--w-action-like)" active={hasUserReacted(props.note.id)} onClick={handleReactClick}>

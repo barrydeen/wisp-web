@@ -40,6 +40,14 @@ export function getFollowSet() {
   return cachedFollows;
 }
 
+export function addToFollowSet(pubkey) {
+  if (cachedFollows) cachedFollows.add(pubkey);
+}
+
+export function removeFromFollowSet(pubkey) {
+  if (cachedFollows) cachedFollows.delete(pubkey);
+}
+
 export async function initFollowFeed(pubkey) {
   // Tear down any previous run
   abortController?.abort();
